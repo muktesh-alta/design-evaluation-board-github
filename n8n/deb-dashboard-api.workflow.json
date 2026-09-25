@@ -8,7 +8,7 @@
         "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "https://muktesh-alta.github.io"
         }
       },
       "id": "6c82a7f2-9376-4ccc-9d9c-0161c9353433",
@@ -26,7 +26,7 @@
         "operation": "read",
         "documentId": {
           "__rl": true,
-          "value": "https://docs.google.com/spreadsheets/d/PASTE-YOUR-SHEET-ID/edit",
+          "value": "https://docs.google.com/spreadsheets/d/1CLguPsHg7uc9VUdakt5Boqv1aez2UoeVbjZiG50FQsM/edit",
           "mode": "url"
         },
         "sheetName": {
@@ -81,7 +81,7 @@
         "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {
-          "allowedOrigins": "*"
+          "allowedOrigins": "https://muktesh-alta.github.io"
         }
       },
       "id": "f649065d-7cc0-4b39-81a0-9f0bc88eae37",
@@ -160,7 +160,7 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "https://docs.google.com/spreadsheets/d/PASTE-YOUR-SHEET-ID/edit",
+          "value": "https://docs.google.com/spreadsheets/d/1CLguPsHg7uc9VUdakt5Boqv1aez2UoeVbjZiG50FQsM/edit",
           "mode": "url"
         },
         "sheetName": {

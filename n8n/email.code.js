@@ -1,7 +1,7 @@
 // n8n Code node: "Build weekly email"  (mode: Run Once for All Items)
 // Input: rows from Google Sheets. Output: one item { subject, html, text }.
 // ---------- settings ----------
-const DASHBOARD_URL = "https://YOUR-GITHUB-USER.github.io/design-evaluation-board/";
+const DASHBOARD_URL = "https://muktesh-alta.github.io/design-evaluation-board-github/";
 const WEEKS_IN_SUMMARY = 4;          // trailing Fridays shown in the email
 // ---- shared helpers (Google Sheets values -> clean records) ----
 const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt"];
