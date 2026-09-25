@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Design Evaluation Board — Weekly Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title">
+      <h1>Design Evaluation Board</h1>
+      <p>Weekly design discussion record, every Friday at 5:00 PM <span class="store" id="store"><i></i><span>Connecting</span></span></p>
+    </div>
+    <div class="actions">
+      <div class="menu" id="exportMenu">
+        <button class="btn" id="exportBtn" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          Export
+        </button>
+        <div class="menu-list" role="menu">
+          <button role="menuitem" data-export="csv">Export CSV<small>Design details matching current filters</small></button>
+          <button role="menuitem" data-export="xlsx">Export Excel<small>Details and weekly summary sheets</small></button>
+          <button role="menuitem" data-export="summary">Export weekly summary<small>One row per Friday in the date range (CSV)</small></button>
+        </div>
+      </div>
+      <button class="btn primary" id="addBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add weekly record
+      </button>
+    </div>
+  </header>
+
+  <div id="app"><div class="loading">Loading meeting records…</div></div>
+
+  <footer id="foot"></footer>
+</div>
+
+<dialog id="recordDlg" aria-labelledby="dlgTitle">
+  <div class="dlg-head">
+    <div><h2 id="dlgTitle">Add weekly record</h2><p id="dlgSub">Record a design from a Friday meeting, or mark a week with no design.</p></div>
+    <button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <p class="form-alert" id="formAlert" role="alert"></p>
+    <div class="field">
+      <label for="f-date">Meeting date<span class="req" aria-hidden="true">*</span></label>
+      <input class="input" type="date" id="f-date">
+      <p class="err" id="e-meetingDate"></p>
+      <p class="warn" id="w-meetingDate"></p>
+    </div>
+    <div class="field">
+      <span class="lbl" id="st-lbl">Outcome</span>
+      <div class="seg" role="radiogroup" aria-labelledby="st-lbl">
+        <input type="radio" name="st" id="st-disc" value="Discussed" checked><label for="st-disc">Design discussed</label>
+        <input type="radio" name="st" id="st-none" value="No Design Discussed"><label for="st-none">No design discussed</label>
+      </div>
+      <p class="err" id="e-status"></p>
+    </div>
+    <div id="designFields" class="dlg-body" style="padding:0">
+      <div class="field">
+        <label for="f-name">Design name<span class="req" aria-hidden="true">*</span></label>
+        <input class="input" id="f-name" autocomplete="off" placeholder="e.g. Navigation Design">
+        <p class="err" id="e-designName"></p>
+      </div>
+      <div class="field">
+        <label for="f-desc">Design description<span class="req" aria-hidden="true">*</span></label>
+        <textarea class="input" id="f-desc" placeholder="What was presented and why"></textarea>
+        <p class="err" id="e-description"></p>
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="f-owner">Owner or presenter</label>
+          <input class="input" id="f-owner" list="ownerList" autocomplete="off" placeholder="e.g. QA Team">
+          <datalist id="ownerList"></datalist>
+        </div>
+        <div class="field">
+          <label for="f-remarks">Remarks</label>
+          <input class="input" id="f-remarks" autocomplete="off" placeholder="Decision, follow-ups">
+        </div>
+      </div>
+    </div>
+    <div id="noneFields" class="hide dlg-body" style="padding:0">
+      <p class="none-note">This week will be saved with 0 designs and shown as <b>No Design Discussed</b>.</p>
+      <div class="field">
+        <label for="f-remarks2">Remarks</label>
+        <input class="input" id="f-remarks2" autocomplete="off" placeholder="Optional, e.g. meeting cancelled for release">
+      </div>
+    </div>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn ghost" data-close>Cancel</button>
+    <button class="btn" id="saveAnother">Save and add another</button>
+    <button class="btn primary" id="saveBtn">Save record</button>
+  </div>
+</dialog>
+
+<dialog id="confirmDlg" aria-labelledby="cfTitle" style="width:min(420px,calc(100vw - 32px))">
+  <div class="dlg-head"><div><h2 id="cfTitle">Delete record?</h2><p id="cfText"></p></div></div>
+  <div class="dlg-foot">
+    <button class="btn ghost" data-close>Cancel</button>
+    <button class="btn danger" id="cfOk">Delete record</button>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/data-service.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+{
+  "name": "DEB - Dashboard API (Google Sheets)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "deb-records",
+        "httpMethod": "GET",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "6c82a7f2-9376-4ccc-9d9c-0161c9353433",
+      "name": "GET records",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "7cbd222f-ab2a-4f85-bc0d-d25663b9f65e"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/PASTE-YOUR-SHEET-ID/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Designs",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "9640d53e-decc-4fe6-ba4f-28f63fc504aa",
+      "name": "Read sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node: \"Clean records\"  (mode: Run Once for All Items)\n// Input: rows from Google Sheets \"Get row(s)\". Output: one item { records }.\n// ---- shared helpers (Google Sheets values -> clean records) ----\nconst FIELDS = [\"id\",\"meetingDate\",\"day\",\"meetingTime\",\"status\",\"designName\",\"description\",\"owner\",\"remarks\",\"createdAt\",\"updatedAt\"];\nfunction isoDate(v) {\n  if (v === null || v === undefined || v === \"\") return \"\";\n  if (typeof v === \"number\" || /^\\d{5}(\\.\\d+)?$/.test(String(v))) {           // Sheets serial date\n    const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(v)) * 86400000);\n    return d.toISOString().slice(0, 10);\n  }\n  const s = String(v).trim().replace(/^'/, \"\");\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/.-](\\d{1,2})[\\/.-](\\d{4})$/);                // 04/09/2026 or 9/4/2026\n  if (m) {\n    let [_, a, b, y] = m; a = +a; b = +b;\n    const [dd, mm] = a > 12 ? [a, b] : b > 12 ? [b, a] : [a, b];              // ambiguous -> day first (India/UK)\n    return `${y}-${String(mm).padStart(2, \"0\")}-${String(dd).padStart(2, \"0\")}`;\n  }\n  const t = Date.parse(s);\n  return isNaN(t) ? \"\" : new Date(t).toISOString().slice(0, 10);\n}\nconst truthy = v => v === true || /^(true|yes|1)$/i.test(String(v ?? \"\").trim());\nfunction cleanRecords(rows) {\n  const out = [];\n  for (const r of rows) {\n    if (!r || !r.id || truthy(r.deleted)) continue;\n    const rec = {};\n    for (const f of FIELDS) rec[f] = r[f] === undefined || r[f] === null ? \"\" : String(r[f]);\n    rec.meetingDate = isoDate(r.meetingDate);\n    if (!rec.meetingDate) continue;\n    rec.status = rec.status === \"No Design Discussed\" ? \"No Design Discussed\" : \"Discussed\";\n    out.push(rec);\n  }\n  return out;\n}\n\nconst records = cleanRecords($input.all().map(i => i.json));\nreturn [{ json: { records, count: records.length, generatedAt: new Date().toISOString() } }];\n"
+      },
+      "id": "e971ad2b-7403-4ab6-9674-b34acb90fe1b",
+      "name": "Clean records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "6684a1b8-559e-40bc-925c-d6abf928841d",
+      "name": "Respond records",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "path": "deb-records-save",
+        "httpMethod": "POST",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "f649065d-7cc0-4b39-81a0-9f0bc88eae37",
+      "name": "POST save record",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        260
+      ],
+      "webhookId": "df86666a-8b3b-4daf-a1ae-8bf05c9af8aa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node: \"Validate record\"  (mode: Run Once for All Items)\n// Input: the POST webhook item. Body must be { record: {...} }.\n// ---- shared helpers (Google Sheets values -> clean records) ----\nconst FIELDS = [\"id\",\"meetingDate\",\"day\",\"meetingTime\",\"status\",\"designName\",\"description\",\"owner\",\"remarks\",\"createdAt\",\"updatedAt\"];\nfunction isoDate(v) {\n  if (v === null || v === undefined || v === \"\") return \"\";\n  if (typeof v === \"number\" || /^\\d{5}(\\.\\d+)?$/.test(String(v))) {           // Sheets serial date\n    const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(v)) * 86400000);\n    return d.toISOString().slice(0, 10);\n  }\n  const s = String(v).trim().replace(/^'/, \"\");\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  const m = s.match(/^(\\d{1,2})[\\/.-](\\d{1,2})[\\/.-](\\d{4})$/);                // 04/09/2026 or 9/4/2026\n  if (m) {\n    let [_, a, b, y] = m; a = +a; b = +b;\n    const [dd, mm] = a > 12 ? [a, b] : b > 12 ? [b, a] : [a, b];              // ambiguous -> day first (India/UK)\n    return `${y}-${String(mm).padStart(2, \"0\")}-${String(dd).padStart(2, \"0\")}`;\n  }\n  const t = Date.parse(s);\n  return isNaN(t) ? \"\" : new Date(t).toISOString().slice(0, 10);\n}\nconst truthy = v => v === true || /^(true|yes|1)$/i.test(String(v ?? \"\").trim());\nfunction cleanRecords(rows) {\n  const out = [];\n  for (const r of rows) {\n    if (!r || !r.id || truthy(r.deleted)) continue;\n    const rec = {};\n    for (const f of FIELDS) rec[f] = r[f] === undefined || r[f] === null ? \"\" : String(r[f]);\n    rec.meetingDate = isoDate(r.meetingDate);\n    if (!rec.meetingDate) continue;\n    rec.status = rec.status === \"No Design Discussed\" ? \"No Design Discussed\" : \"Discussed\";\n    out.push(rec);\n  }\n  return out;\n}\n\nconst body = $input.first().json.body || {};\nconst r = body.record || {};\nconst errors = [];\nif (!r.id || !/^[A-Za-z0-9_-]{3,64}$/.test(String(r.id))) errors.push(\"record.id is missing or invalid\");\nconst date = isoDate(r.meetingDate);\nif (!date) errors.push(\"record.meetingDate must be YYYY-MM-DD\");\nconst status = r.status === \"No Design Discussed\" ? \"No Design Discussed\" : r.status === \"Discussed\" ? \"Discussed\" : null;\nif (!status) errors.push(\"record.status must be 'Discussed' or 'No Design Discussed'\");\nconst deleted = truthy(r.deleted);\nif (!deleted && status === \"Discussed\") {\n  if (!String(r.designName || \"\").trim()) errors.push(\"designName is required when status is Discussed\");\n  if (!String(r.description || \"\").trim()) errors.push(\"description is required when status is Discussed\");\n}\nif (errors.length) return [{ json: { valid: false, error: errors.join(\"; \") } }];\nconst clip = (v, n = 2000) => String(v ?? \"\").slice(0, n);\nconst now = new Date().toISOString();\nreturn [{ json: {\n  valid: true,\n  row: {\n    id: String(r.id), meetingDate: date,\n    day: new Date(date + \"T00:00:00Z\").toLocaleDateString(\"en-GB\", { weekday: \"long\", timeZone: \"UTC\" }),\n    meetingTime: clip(r.meetingTime || \"5:00 PM\", 20), status,\n    designName: status === \"Discussed\" ? clip(r.designName, 200) : \"\",\n    description: status === \"Discussed\" ? clip(r.description) : \"No design discussed\",\n    owner: status === \"Discussed\" ? clip(r.owner, 200) : \"\",\n    remarks: clip(r.remarks),\n    createdAt: clip(r.createdAt || now, 40), updatedAt: now,\n    deleted: deleted ? \"TRUE\" : \"FALSE\"\n  }\n} }];\n"
+      },
+      "id": "ba03c1a6-106f-41c1-b663-c304262562aa",
+      "name": "Validate record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "694a0694-0ad9-42ee-a44a-0ed6e659ca5c",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6723c1b0-2c56-4573-a5c0-ba81a8c608df",
+      "name": "Is valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        480,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify($json.row) }}",
+        "options": {}
+      },
+      "id": "c6e58345-e72a-4a61-8c1e-d442b4194d07",
+      "name": "Prepare row",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/PASTE-YOUR-SHEET-ID/edit",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Designs",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "id": "491a4f3a-e846-4c6e-a646-d608366c2287",
+      "name": "Upsert row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        960,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, id: $('Validate record').first().json.row.id }) }}",
+        "options": {}
+      },
+      "id": "1dbc92d2-4438-4371-9e2f-c713345abe55",
+      "name": "Respond saved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "90ee9631-0732-49db-85ee-114a121d31bf",
+      "name": "Respond invalid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        360
+      ]
+    }
+  ],
+  "connections": {
+    "GET records": {
+      "main": [
+        [
+          {
+            "node": "Read sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read sheet": {
+      "main": [
+        [
+          {
+            "node": "Clean records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean records": {
+      "main": [
+        [
+          {
+            "node": "Respond records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST save record": {
+      "main": [
+        [
+          {
+            "node": "Validate record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate record": {
+      "main": [
+        [
+          {
+            "node": "Is valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is valid?": {
+      "main": [
+        [
+          {
+            "node": "Prepare row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare row": {
+      "main": [
+        [
+          {
+            "node": "Upsert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert row": {
+      "main": [
+        [
+          {
+            "node": "Respond saved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Kolkata"
+  },
+  "active": false,
+  "pinData": {}
+}

@@ -1,0 +1,14 @@
+id,meetingDate,day,meetingTime,status,designName,description,owner,remarks,createdAt,updatedAt,deleted
+r01,2026-08-07,Friday,5:00 PM,Discussed,Login Flow Redesign,Single sign-on entry and error states,Design Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r02,2026-08-14,Friday,5:00 PM,No Design Discussed,,No design discussed,,Board time used for sprint retro,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r03,2026-08-28,Friday,5:00 PM,Discussed,Test Case Library,Reusable test case catalogue with tagging,QA Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r04,2026-08-28,Friday,5:00 PM,Discussed,Defect Triage Board,Kanban view for incoming defects,Platform Team,Follow-up on SLA colours,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r05,2026-09-04,Friday,5:00 PM,Discussed,Navigation Design,Navigation flow enhancement,QA Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r06,2026-09-04,Friday,5:00 PM,Discussed,PUC Design,PUC workflow changes,QA Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r07,2026-09-04,Friday,5:00 PM,Discussed,Report Builder,Drag-and-drop report sections,Design Team,Approved with minor changes,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r08,2026-09-11,Friday,5:00 PM,Discussed,Dashboard Design,New dashboard layout,Design Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r09,2026-09-11,Friday,5:00 PM,Discussed,Notification Centre,In-app alerts with read state,Platform Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r10,2026-09-25,Friday,5:00 PM,Discussed,Execution Design,Live execution monitoring,QA Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r11,2026-09-25,Friday,5:00 PM,Discussed,Environment Scheduler,Booking calendar for shared test environments,Platform Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r12,2026-09-25,Friday,5:00 PM,Discussed,Audit Trail View,Change history for test runs,QA Team,Needs security review,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
+r13,2026-09-25,Friday,5:00 PM,Discussed,Mobile Test Runner,Tablet layout for manual test execution,Design Team,,2026-09-25T12:00:00Z,2026-09-25T12:00:00Z,FALSE
