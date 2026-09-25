@@ -18,7 +18,11 @@ window.DEB_CONFIG = {
        page source. It stops casual/bot traffic, not a determined user. */
     apiKey: "133a6fea8e411273d8f546bef5bf7311a780dd02ce174485",
     apiKeyHeader: "X-API-Key",
-    /* How often to pull changes made by colleagues (seconds). */
-    pollSeconds: 60
+    /* Every refresh is one n8n execution.
+       pollSeconds: auto-refresh interval while the page is open (min 60).
+                    0 = off; data loads on page open, after saves, and on return to the tab.
+       focusRefreshSeconds: on returning to the tab, refresh only if data is older than this. */
+    pollSeconds: 0,
+    focusRefreshSeconds: 300
   }
 };

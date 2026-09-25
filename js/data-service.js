@@ -39,7 +39,7 @@ class ClaudeDbAdapter {
 class N8nApiAdapter {
   constructor(cfg) {
     this.cfg = cfg; this.kind = "Saved to Google Sheets via n8n";
-    this.cache = []; this.listeners = new Set(); this.timer = null;
+    this.cache = []; this.listeners = new Set(); this.timer = null; this.lastLoad = 0;
   }
   async _req(method, path, body) {
     let res;
@@ -62,6 +62,7 @@ class N8nApiAdapter {
     const json = await this._req("GET", this.cfg.readPath);
     const list = Array.isArray(json) ? json : (json.records || []);
     this.cache = list.filter(r => r && r.id && DateUtil.isISO(r.meetingDate));
+    this.lastLoad = Date.now();
     return this.cache;
   }
   async _refresh() {
@@ -69,11 +70,19 @@ class N8nApiAdapter {
     try { await this.load(); } catch (e) { console.warn("n8n refresh failed", e); return; }
     if (JSON.stringify(this.cache) !== before) this._emit();
   }
+  /* Each refresh is one n8n execution, so keep them rare:
+     pollSeconds > 0 polls while the tab is visible (min 60s); 0 turns polling off.
+     Returning to the tab refreshes only if the data is older than focusRefreshSeconds. */
   subscribe(fn) {
     this.listeners.add(fn);
     if (!this.timer) {
-      this.timer = setInterval(() => document.visibilityState === "visible" && this._refresh(), Math.max(15, this.cfg.pollSeconds || 60) * 1000);
-      document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && this._refresh());
+      this.timer = true;
+      const poll = Number(this.cfg.pollSeconds) || 0;
+      if (poll > 0) setInterval(() => document.visibilityState === "visible" && this._refresh(), Math.max(60, poll) * 1000);
+      const stale = Math.max(60, Number(this.cfg.focusRefreshSeconds) || 300) * 1000;
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && Date.now() - this.lastLoad > stale) this._refresh();
+      });
     }
     return () => this.listeners.delete(fn);
   }
@@ -83,7 +92,6 @@ class N8nApiAdapter {
     if (record.deleted) { if (i >= 0) this.cache.splice(i, 1); }
     else if (i >= 0) this.cache[i] = record; else this.cache.push(record);
     this.cache = this.cache.slice(); this._emit();
-    this._refresh();
   }
   newId() { return "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   async add(rec) { const r = { ...rec, id: this.newId(), deleted: false }; await this._save(r); return r; }

@@ -96,7 +96,7 @@ n8n: {
 ```
 
 Reload the site. The header should read **Saved to Google Sheets via n8n**.
-Colleagues' changes appear within about a minute; `pollSeconds` controls how often the page checks.
+Each page load or save is one n8n execution. Auto-refresh is off by default (`pollSeconds: 0`): the page loads data when opened, after saves, and when you return to the tab after 5+ minutes (`focusRefreshSeconds`). Set `pollSeconds` (60 or more) if you want colleagues' changes to appear without a reload.
 
 ### 3d. Weekly email workflow
 
