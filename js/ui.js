@@ -143,7 +143,7 @@ function render() {
 
 function renderStore() {
   const el = $("#store");
-  el.classList.toggle("live", DataService.kind.includes("shared"));
+  el.classList.toggle("live", !state.readOnly && /shared|Google Sheets/.test(DataService.kind));
   el.lastElementChild.textContent = DataService.kind + (state.readOnly ? " (view only)" : "");
   $("#addBtn").disabled = state.readOnly;
 }
@@ -352,7 +352,7 @@ function renderDetails(v) {
         <td class="desc">${esc(r.description)}${r.synthetic ? `<span class="auto">No record entered for this Friday</span>` : ""}</td>
         <td class="nowrap">${esc(r.owner) || `<span class="muted">—</span>`}</td>
         <td class="desc" style="min-width:140px">${esc(r.remarks) || `<span class="muted">—</span>`}</td>
-        ${ENHANCEMENT_FIELDS.map(([k]) => `<td class="nowrap">${esc(r[k]) || `<span class="muted">—</span>`}</td>`).join("")}
+        ${ENHANCEMENT_FIELDS.map(([k]) => `<td class="nowrap">${!r[k] ? `<span class="muted">—</span>` : k === "jiraId" || k === "enhancementId" ? `<span class="code">${esc(r[k])}</span>` : esc(r[k])}</td>`).join("")}
         <td><div class="row-actions">${acts}</div></td></tr>`;
     }).join("") + "</tbody>";
   }
