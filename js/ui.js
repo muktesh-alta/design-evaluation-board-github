@@ -151,10 +151,8 @@ function renderStore() {
 /** Short label for the latest-board card: the Enhancement ID or JIRA ID if entered, else a ticket ID
  *  (e.g. DM326301, AEO-13472) found in the description, design name or record id; otherwise the start of the description. */
 function designLabel(d) {
-  if ((d.enhancementId || "").trim()) return d.enhancementId.trim();
-  if ((d.jiraId || "").trim()) return d.jiraId.trim();
-  const TICKET = /\b[A-Z]{2,}-?\d{3,}\b/;
-  for (const s of [d.description, d.designName, d.id]) {
+  const TICKET = /\b[A-Z]{2,}-?\d{3,}\b/;   // ignores placeholders such as "Pending"
+  for (const s of [d.enhancementId, d.jiraId, d.description, d.designName, d.id]) {
     const m = String(s || "").match(TICKET);
     if (m) return m[0];
   }
@@ -164,7 +162,7 @@ function designLabel(d) {
 
 /** " · Monday" for a design discussed on a make-up day, empty for the Friday meeting. */
 const makeUpTag = d => DateUtil.isISO(d.meetingDate) && DateUtil.dow(d.meetingDate) !== MEETING.weekday
-  ? ` · <span title="Make-up session on ${DateUtil.long(d.meetingDate)}">${DateUtil.dayName(d.meetingDate)}</span>` : "";
+  ? `<span class="makeup" title="Make-up session on ${DateUtil.long(d.meetingDate)}">${DateUtil.dayName(d.meetingDate)}</span>` : "";
 
 /** "Make-up: Monday, Tuesday" when some of a week's designs were discussed after the Friday. */
 const makeUpDays = w => {
@@ -181,7 +179,7 @@ function renderLatest({ latest }) {
   }
   const none = latest.designCount === 0;
   el.className = "latest" + (none ? " empty-week" : "");
-  const names = latest.designs.slice(0, 4).map(d => `<li title="${esc(d.designName)}"><b>${esc(designLabel(d))}</b>${d.owner ? `, ${esc(d.owner)}` : ""}${makeUpTag(d)}</li>`).join("");
+  const names = latest.designs.slice(0, 4).map(d => `<li title="${esc(d.designName)}"><b>${esc(designLabel(d))}</b>${d.owner ? `<span>${esc(d.owner)}</span>` : ""}${makeUpTag(d)}</li>`).join("");
   const more = latest.designs.length > 4 ? `<li>and ${latest.designs.length - 4} more</li>` : "";
   el.innerHTML = `
     <h2>Latest Design Evaluation Board</h2>
