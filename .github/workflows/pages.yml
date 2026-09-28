@@ -23,6 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Stamp this commit into asset URLs and version.json so browsers never run stale code.
+      - name: Stamp build version
+        run: |
+          V="${GITHUB_SHA::7}"
+          sed -i "s/?v=dev/?v=$V/g; s/window.DEB_BUILD = \"dev\"/window.DEB_BUILD = \"$V\"/" index.html
+          printf '{"build":"%s"}\n' "$V" > version.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .

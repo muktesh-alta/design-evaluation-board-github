@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=dev">
 </head>
 <body>
 <div class="wrap">
@@ -156,9 +156,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="config.js"></script>
-<script src="js/logic.js"></script>
-<script src="js/data-service.js"></script>
-<script src="js/ui.js"></script>
+<script>window.DEB_BUILD = "dev"; /* replaced with the commit id on deploy */</script>
+<script src="config.js?v=dev"></script>
+<script src="js/logic.js?v=dev"></script>
+<script src="js/data-service.js?v=dev"></script>
+<script src="js/ui.js?v=dev"></script>
 </body>
 </html>

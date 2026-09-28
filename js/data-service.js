@@ -86,12 +86,19 @@ class N8nApiAdapter {
     }
     return () => this.listeners.delete(fn);
   }
+  /** Save to the sheet, then reload from the sheet so the dashboard shows exactly what was stored.
+   *  If that reload fails, fall back to applying the change locally. */
   async _save(record) {
     await this._req("POST", this.cfg.savePath, { record });
-    const i = this.cache.findIndex(r => r.id === record.id);
-    if (record.deleted) { if (i >= 0) this.cache.splice(i, 1); }
-    else if (i >= 0) this.cache[i] = record; else this.cache.push(record);
-    this.cache = this.cache.slice(); this._emit();
+    try { await this.load(); }
+    catch (e) {
+      console.warn("Reload after save failed; applying locally", e);
+      const i = this.cache.findIndex(r => r.id === record.id);
+      if (record.deleted) { if (i >= 0) this.cache.splice(i, 1); }
+      else if (i >= 0) this.cache[i] = record; else this.cache.push(record);
+      this.cache = this.cache.slice();
+    }
+    this._emit();
   }
   newId() { return "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
   async add(rec) { const r = { ...rec, id: this.newId(), deleted: false }; await this._save(r); return r; }

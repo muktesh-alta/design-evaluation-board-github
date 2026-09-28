@@ -472,6 +472,7 @@ async function saveRecord(another) {
   if (!res.ok) { const first = Object.keys(res.errors).find(k => map[k]); if (first) $(map[first]).focus(); return; }
   const rec = Validator.normalize(input);
   const btns = [$("#saveBtn"), $("#saveAnother")]; btns.forEach(b => b.disabled = true);
+  (another ? $("#saveAnother") : $("#saveBtn")).textContent = "Saving…";
   try {
     if (dlg.editing) await DataService.updateDesign(dlg.editing.id, rec);
     else await DataService.addDesign(rec);
@@ -489,7 +490,11 @@ async function saveRecord(another) {
       $("#f-name").value = ""; $("#f-desc").value = ""; $("#f-remarks").value = ""; $("#f-name").focus();
     } else $("#recordDlg").close();
   } catch (e) { handleWriteError(e, $("#formAlert")); }
-  finally { btns.forEach(b => b.disabled = false); if (!dlg.editing && !another) $("#saveBtn").textContent = "Save record"; }
+  finally {
+    btns.forEach(b => b.disabled = false);
+    $("#saveBtn").textContent = dlg.editing ? "Save changes" : "Save record";
+    $("#saveAnother").textContent = "Save and add another";
+  }
 }
 function ensureInRange(date) {
   const f = DateUtil.weekFriday(date);
@@ -609,8 +614,24 @@ function showConnectionError(e) {
   });
 }
 
+/** If a newer version was deployed than the one this browser cached, reload once to pick it up. */
+async function reloadIfStale() {
+  const build = window.DEB_BUILD;
+  if (!build || build === "dev") return false;
+  try {
+    const res = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    const live = res.ok ? (await res.json()).build : build;
+    if (live === build) { sessionStorage.removeItem("deb-reloaded"); return false; }
+    if (sessionStorage.getItem("deb-reloaded") === live) return false;   // already tried once
+    sessionStorage.setItem("deb-reloaded", live);
+    location.reload();
+    return true;
+  } catch { return false; }
+}
+
 /* ---------- boot ---------- */
 (async function boot() {
+  if (await reloadIfStale()) return;
   wireGlobal();
   const cfg = window.DEB_CONFIG || { storage: "local" };
   let adapter = null;
