@@ -83,6 +83,44 @@
           <input class="input" id="f-remarks" autocomplete="off" placeholder="Decision, follow-ups">
         </div>
       </div>
+      <span class="lbl">Enhancement details</span>
+      <div class="two-col">
+        <div class="field">
+          <label for="f-jiraId">JIRA ID</label>
+          <input class="input" id="f-jiraId" autocomplete="off" placeholder="e.g. AEO-13472">
+        </div>
+        <div class="field">
+          <label for="f-enhancementId">Enhancement ID</label>
+          <input class="input" id="f-enhancementId" autocomplete="off" placeholder="e.g. DM274493">
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-enhancementName">Enhancement name</label>
+        <input class="input" id="f-enhancementName" autocomplete="off" placeholder="e.g. Introduce Store-Level Control for AI Forecast Activation">
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="f-component">Component</label>
+          <input class="input" id="f-component" list="componentList" autocomplete="off" placeholder="e.g. Altametrics Enterprise">
+          <datalist id="componentList"></datalist>
+        </div>
+        <div class="field">
+          <label for="f-clientName">Client name</label>
+          <input class="input" id="f-clientName" list="clientList" autocomplete="off" placeholder="e.g. Altametrics">
+          <datalist id="clientList"></datalist>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label for="f-scopedInSprint">Is scoped in sprint backlog</label>
+          <select class="input" id="f-scopedInSprint"><option value="">Not set</option><option>Yes</option><option>No</option></select>
+        </div>
+        <div class="field">
+          <label for="f-sprint">Sprint</label>
+          <input class="input" id="f-sprint" list="sprintList" autocomplete="off" placeholder="e.g. Alta Sprint 33">
+          <datalist id="sprintList"></datalist>
+        </div>
+      </div>
     </div>
     <div id="noneFields" class="hide dlg-body" style="padding:0">
       <p class="none-note">This week will be saved with 0 designs and shown as <b>No Design Discussed</b>.</p>

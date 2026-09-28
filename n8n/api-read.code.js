@@ -1,7 +1,7 @@
 // n8n Code node: "Clean records"  (mode: Run Once for All Items)
 // Input: rows from Google Sheets "Get row(s)". Output: one item { records }.
 // ---- shared helpers (Google Sheets values -> clean records) ----
-const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt"];
+const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","enhancementName","component","clientName","scopedInSprint","sprint"];
 function isoDate(v) {
   if (v === null || v === undefined || v === "") return "";
   if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v))) {           // Sheets serial date

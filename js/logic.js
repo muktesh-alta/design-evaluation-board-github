@@ -3,6 +3,13 @@
    ===================================================================== */
 const STATUS = Object.freeze({ DISCUSSED: "Discussed", NONE: "No Design Discussed" });
 const MEETING = Object.freeze({ day: "Friday", time: "5:00 PM", weekday: 5 });
+/** Optional enhancement details stored with each design: [record key = sheet column, label]. */
+const ENHANCEMENT_FIELDS = Object.freeze([
+  ["jiraId", "JIRA ID"], ["enhancementId", "Enhancement ID"], ["enhancementName", "Enhancement Name"],
+  ["component", "Component"], ["clientName", "Client Name"], ["scopedInSprint", "Is Scoped in Sprint Backlog"], ["sprint", "Sprint"]
+]);
+const enhancementValues = (r, blank = false) =>
+  Object.fromEntries(ENHANCEMENT_FIELDS.map(([k]) => [k, blank ? "" : String(r[k] ?? "").trim()]));
 
 /* ---------- Dates: ISO "YYYY-MM-DD" strings, arithmetic in UTC ---------- */
 const DateUtil = (() => {
@@ -100,7 +107,7 @@ const WeeklyEngine = {
       id: r.id, synthetic, friday: w.friday, weekLabel: w.weekLabel, monthLabel: w.monthLabel,
       meetingDate: r.meetingDate, status: r.status === STATUS.DISCUSSED ? STATUS.DISCUSSED : STATUS.NONE,
       designName: r.designName || "", description: r.description || (r.status === STATUS.NONE ? "No design discussed" : ""),
-      owner: r.owner || "", remarks: r.remarks || ""
+      owner: r.owner || "", remarks: r.remarks || "", ...enhancementValues(r)
     };
   },
 
@@ -126,7 +133,8 @@ const TableQuery = {
       if (f.owner && f.owner !== "all" && r.owner !== f.owner) return false;
       if (f.week && r.friday !== f.week) return false;
       if (q) {
-        const hay = [r.designName, r.description, r.owner, r.remarks, r.status, DateUtil.short(r.meetingDate), r.weekLabel].join(" ").toLowerCase();
+        const hay = [r.designName, r.description, r.owner, r.remarks, r.status, DateUtil.short(r.meetingDate), r.weekLabel,
+          ...ENHANCEMENT_FIELDS.map(([k]) => r[k])].join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -192,16 +200,18 @@ const Validator = {
       designName: none ? "" : input.designName.trim(),
       description: none ? "No design discussed" : input.description.trim(),
       owner: none ? "" : (input.owner || "").trim(),
-      remarks: (input.remarks || "").trim()
+      remarks: (input.remarks || "").trim(),
+      ...enhancementValues(input, none)
     };
   }
 };
 
 /* ---------- Export builders (pure: return data, UI saves it) ---------- */
 const Exporter = {
-  detailColumns: ["Week", "Meeting Date", "Day", "Meeting Time", "Design Status", "Design Name", "Design Description", "Owner/Presenter", "Remarks"],
+  detailColumns: ["Week", "Meeting Date", "Day", "Meeting Time", "Design Status", "Design Name", "Design Description", "Owner/Presenter", "Remarks",
+    ...ENHANCEMENT_FIELDS.map(([, l]) => l)],
   detailRow: r => [`${r.weekLabel}, ${r.monthLabel}`, DateUtil.short(r.meetingDate), DateUtil.dayName(r.meetingDate), MEETING.time,
-    r.status, r.designName || "—", r.description, r.owner, r.remarks],
+    r.status, r.designName || "—", r.description, r.owner, r.remarks, ...ENHANCEMENT_FIELDS.map(([k]) => r[k] || "")],
   summaryColumns: ["Week", "Meeting Date", "Design Count", "Status"],
   summaryRow: w => [`${w.weekLabel}, ${w.monthLabel}`, DateUtil.short(w.friday), w.designCount, w.status],
   toCSV(columns, rows) {
@@ -210,4 +220,4 @@ const Exporter = {
   }
 };
 
-if (typeof module !== "undefined" && module.exports) module.exports = { STATUS, MEETING, DateUtil, WeeklyEngine, TableQuery, Validator, Exporter };
+if (typeof module !== "undefined" && module.exports) module.exports = { STATUS, MEETING, ENHANCEMENT_FIELDS, DateUtil, WeeklyEngine, TableQuery, Validator, Exporter };

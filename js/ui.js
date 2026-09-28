@@ -148,9 +148,11 @@ function renderStore() {
   $("#addBtn").disabled = state.readOnly;
 }
 
-/** Short label for the latest-board card: the ticket ID (e.g. DM326301, AEO-13472)
- *  found in the description, design name or record id; otherwise the start of the description. */
+/** Short label for the latest-board card: the Enhancement ID or JIRA ID if entered, else a ticket ID
+ *  (e.g. DM326301, AEO-13472) found in the description, design name or record id; otherwise the start of the description. */
 function designLabel(d) {
+  if ((d.enhancementId || "").trim()) return d.enhancementId.trim();
+  if ((d.jiraId || "").trim()) return d.jiraId.trim();
   const TICKET = /\b[A-Z]{2,}-?\d{3,}\b/;
   for (const s of [d.description, d.designName, d.id]) {
     const m = String(s || "").match(TICKET);
@@ -201,6 +203,10 @@ function renderFilters({ recs, rangeOk, weeks }) {
   const team = ((window.DEB_CONFIG || {}).owners || []).map(o => String(o).trim()).filter(Boolean);
   const suggestions = [...new Set([...team, ...owners])].sort((a, b) => a.localeCompare(b));
   $("#ownerList").innerHTML = suggestions.map(o => `<option value="${esc(o)}">`).join("");
+  for (const [key, list] of [["component", "#componentList"], ["clientName", "#clientList"], ["sprint", "#sprintList"]]) {
+    const used = [...new Set(recs.map(r => (r[key] || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    $(list).innerHTML = used.map(o => `<option value="${esc(o)}">`).join("");
+  }
   const msg = $("#filterMsg");
   if (!rangeOk) msg.textContent = !state.range.start || !state.range.end ? "Choose both a start and an end date." : "The start date is after the end date. Swap them to see results.";
   else if (!weeks.length) msg.textContent = "There are no past Fridays in this range. Widen the range to include at least one Friday.";
@@ -302,7 +308,9 @@ function renderDetails(v) {
   const { filtered, allRows } = v;
   const cols = [
     ["week", "Week"], ["date", "Meeting date"], ["status", "Design status"], ["designName", "Design name"],
-    [null, "Design description"], ["owner", "Owner or presenter"], [null, "Remarks"], [null, "<span class='sr'>Actions</span>"]
+    [null, "Design description"], ["owner", "Owner or presenter"], [null, "Remarks"],
+    ...ENHANCEMENT_FIELDS.map(([k, l]) => [k === "enhancementName" ? null : k, l]),
+    [null, "<span class='sr'>Actions</span>"]
   ];
   const head = cols.map(([k, l]) => {
     if (!k) return `<th>${l}</th>`;
@@ -314,7 +322,7 @@ function renderDetails(v) {
   const t = $("#detailTable");
   if (!pg.items.length) {
     const noData = !v.recs.length;
-    t.innerHTML = `<thead><tr>${head}</tr></thead><tbody><tr><td colspan="8"><div class="empty">
+    t.innerHTML = `<thead><tr>${head}</tr></thead><tbody><tr><td colspan="${cols.length}"><div class="empty">
       <b>${noData ? "No records yet" : allRows.length ? "No rows match these filters" : "No Fridays in this range"}</b>
       ${noData ? "Add the outcome of a Friday meeting to begin the weekly record." : allRows.length ? "Clear the search or reset filters to see all rows." : "Widen the date range to include at least one past Friday."}
       ${noData && !state.readOnly ? `<div><button class="btn primary" data-act="first">Add weekly record</button>${DataService.kind.includes("browser") ? ` <button class="btn" data-act="demo">Load demo data</button>` : ""}</div>` : allRows.length ? `<div><button class="btn" data-act="reset">Reset filters</button></div>` : ""}
@@ -334,6 +342,7 @@ function renderDetails(v) {
         <td class="desc">${esc(r.description)}${r.synthetic ? `<span class="auto">No record entered for this Friday</span>` : ""}</td>
         <td class="nowrap">${esc(r.owner) || `<span class="muted">—</span>`}</td>
         <td class="desc" style="min-width:140px">${esc(r.remarks) || `<span class="muted">—</span>`}</td>
+        ${ENHANCEMENT_FIELDS.map(([k]) => `<td class="${k === "enhancementName" ? "desc" : "nowrap"}">${esc(r[k]) || `<span class="muted">—</span>`}</td>`).join("")}
         <td><div class="row-actions">${acts}</div></td></tr>`;
     }).join("") + "</tbody>";
   }
@@ -413,6 +422,7 @@ function openRecord(rec = null, preset = {}) {
   $(src.status === STATUS.NONE ? "#st-none" : "#st-disc").checked = true;
   $("#f-name").value = src.designName || ""; $("#f-desc").value = rec && rec.status === STATUS.DISCUSSED ? rec.description || "" : "";
   $("#f-owner").value = src.owner || ""; $("#f-remarks").value = src.remarks || ""; $("#f-remarks2").value = src.remarks || "";
+  ENHANCEMENT_FIELDS.forEach(([k]) => { $("#f-" + k).value = src[k] || ""; });
   $("#saveBtn").textContent = rec ? "Save changes" : "Save record";
   syncStatusFields();
   $("#recordDlg").showModal();
@@ -421,7 +431,8 @@ function openRecord(rec = null, preset = {}) {
 function readForm() {
   const none = statusValue() === STATUS.NONE;
   return { meetingDate: $("#f-date").value, status: statusValue(), designName: $("#f-name").value, description: $("#f-desc").value,
-    owner: $("#f-owner").value, remarks: none ? $("#f-remarks2").value : $("#f-remarks").value };
+    owner: $("#f-owner").value, remarks: none ? $("#f-remarks2").value : $("#f-remarks").value,
+    ...Object.fromEntries(ENHANCEMENT_FIELDS.map(([k]) => [k, $("#f-" + k).value])) };
 }
 async function saveRecord(another) {
   clearErrors();

@@ -1,1 +1,1 @@
-id,meetingDate,day,meetingTime,status,designName,description,owner,remarks,createdAt,updatedAt,deleted
+id,meetingDate,day,meetingTime,status,designName,description,owner,remarks,createdAt,updatedAt,deleted,jiraId,enhancementId,enhancementName,component,clientName,scopedInSprint,sprint
