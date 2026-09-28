@@ -65,7 +65,7 @@ Deletes are soft: the row stays with `deleted = TRUE`, which gives you an audit 
 | --- | --- | --- |
 | **Google Sheets OAuth2** | Both workflows | Sign in with an account that can edit the sheet |
 | **Header Auth** | API webhooks | Name: `X-API-Key`. Value: a long random string. The same value goes in `config.js` |
-| **SMTP** (or swap in Gmail / Outlook) | Email workflow | Your company mail server or an app password |
+| **Gmail OAuth2** | Email workflow | Sign in with the Google account that sends the email (the workflow uses the Gmail node) |
 
 ### 3b. Dashboard API workflow
 
@@ -103,7 +103,7 @@ Each page load or save is one n8n execution. Auto-refresh is off by default (`po
 1. Import `n8n/deb-weekly-email.workflow.json`.
 2. **Read sheet**: select the Google credential, sheet URL and `Designs` tab.
 3. **Build weekly email**: at the top of the code, set `DASHBOARD_URL` to your GitHub Pages URL. Optionally change `WEEKS_IN_SUMMARY`.
-4. **Send email**: select the SMTP credential and set **From** and **To**. Separate multiple recipients with commas.
+4. **Send email** (Gmail node): select the Gmail credential; mail is sent from that account. Set **To**; separate multiple recipients with commas.
    To use Gmail or Outlook instead, replace this node and map `{{ $json.subject }}` and `{{ $json.html }}`.
 5. Click **Test workflow**. The *Send test now* trigger sends one immediately.
 6. Switch the workflow to **Active**.
