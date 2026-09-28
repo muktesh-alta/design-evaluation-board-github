@@ -148,6 +148,18 @@ function renderStore() {
   $("#addBtn").disabled = state.readOnly;
 }
 
+/** Short label for the latest-board card: the ticket ID (e.g. DM326301, AEO-13472)
+ *  found in the description, design name or record id; otherwise the start of the description. */
+function designLabel(d) {
+  const TICKET = /\b[A-Z]{2,}-?\d{3,}\b/;
+  for (const s of [d.description, d.designName, d.id]) {
+    const m = String(s || "").match(TICKET);
+    if (m) return m[0];
+  }
+  const text = String(d.description || d.designName || "").trim();
+  return text.length > 40 ? text.slice(0, 40).replace(/\s+\S*$/, "") + "…" : text;
+}
+
 function renderLatest({ latest }) {
   const el = $("#latest");
   if (!latest) {
@@ -157,7 +169,7 @@ function renderLatest({ latest }) {
   }
   const none = latest.designCount === 0;
   el.className = "latest" + (none ? " empty-week" : "");
-  const names = latest.designs.slice(0, 4).map(d => `<li><b>${esc(d.designName)}</b>${d.owner ? `, ${esc(d.owner)}` : ""}</li>`).join("");
+  const names = latest.designs.slice(0, 4).map(d => `<li title="${esc(d.designName)}"><b>${esc(designLabel(d))}</b>${d.owner ? `, ${esc(d.owner)}` : ""}</li>`).join("");
   const more = latest.designs.length > 4 ? `<li>and ${latest.designs.length - 4} more</li>` : "";
   el.innerHTML = `
     <h2>Latest Design Evaluation Board</h2>
