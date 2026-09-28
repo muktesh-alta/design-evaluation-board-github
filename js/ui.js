@@ -186,7 +186,9 @@ function renderFilters({ recs, rangeOk, weeks }) {
   const owners = [...new Set(recs.map(r => (r.owner || "").trim()).filter(Boolean))].sort();
   if (state.owner !== "all" && !owners.includes(state.owner)) owners.push(state.owner);
   $("#fOwner").innerHTML = `<option value="all">All</option>` + owners.map(o => `<option ${o === state.owner ? "selected" : ""}>${esc(o)}</option>`).join("");
-  $("#ownerList").innerHTML = owners.map(o => `<option value="${esc(o)}">`).join("");
+  const team = ((window.DEB_CONFIG || {}).owners || []).map(o => String(o).trim()).filter(Boolean);
+  const suggestions = [...new Set([...team, ...owners])].sort((a, b) => a.localeCompare(b));
+  $("#ownerList").innerHTML = suggestions.map(o => `<option value="${esc(o)}">`).join("");
   const msg = $("#filterMsg");
   if (!rangeOk) msg.textContent = !state.range.start || !state.range.end ? "Choose both a start and an end date." : "The start date is after the end date. Swap them to see results.";
   else if (!weeks.length) msg.textContent = "There are no past Fridays in this range. Widen the range to include at least one Friday.";

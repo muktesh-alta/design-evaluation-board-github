@@ -6,6 +6,10 @@ window.DEB_CONFIG = {
      "n8n"   = records read/saved through your n8n webhooks + Google Sheet. */
   storage: "n8n",
 
+  /* Names suggested in "Owner or presenter" when adding a record.
+     Names already used in records are suggested too; any other name can still be typed. */
+  owners: ["Abhilash", "Anurag", "Avnish", "Hitesh", "Manpreet", "Mohit", "Neha", "Saksham"],
+
   n8n: {
     /* Production webhook base, WITHOUT a trailing slash.
        n8n Cloud:    https://YOUR-NAME.app.n8n.cloud/webhook
