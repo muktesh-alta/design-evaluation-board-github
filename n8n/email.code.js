@@ -43,10 +43,12 @@ const DAY = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturd
 const P = d => new Date(d + "T00:00:00Z");
 const add = (d, n) => { const x = P(d); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 const dow = d => P(d).getUTCDay();
-const weekFriday = d => add(d, (5 - dow(d) + 7) % 7);
 const fridayOnOrBefore = d => add(d, -((dow(d) - 5 + 7) % 7));
+// Week runs Friday → Thursday: a make-up session on Mon–Thu counts toward the Friday before it.
+const weekFriday = fridayOnOrBefore;
 const short = d => { const x = P(d); return `${String(x.getUTCDate()).padStart(2, "0")}-${MON[x.getUTCMonth()]}-${x.getUTCFullYear()}`; };
 const long = d => `${DAY[dow(d)]}, ${short(d)}`;
+const madeUp = d => dow(d.meetingDate) !== 5 ? ` (make-up, ${DAY[dow(d.meetingDate)]} ${short(d.meetingDate)})` : "";
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
 const today = $now.toFormat("yyyy-MM-dd");
@@ -76,7 +78,7 @@ const th = `style="padding:8px 10px;border-bottom:1px solid ${C.line};font-size:
 
 const latestBlock = latest.count
   ? `<table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><tr><th ${th}>Design</th><th ${th}>Description</th><th ${th}>Owner</th><th ${th}>Remarks</th></tr>
-     ${latest.designs.map(d => `<tr><td ${td}><b>${esc(d.designName)}</b></td><td ${td}>${esc(d.description)}</td><td ${td}>${esc(d.owner) || "—"}</td><td ${td}>${esc(d.remarks) || "—"}</td></tr>`).join("")}</table>`
+     ${latest.designs.map(d => `<tr><td ${td}><b>${esc(d.designName)}</b>${madeUp(d) ? `<br><span style="font-size:12px;color:${C.ochre}">${esc(madeUp(d).slice(2, -1))}</span>` : ""}</td><td ${td}>${esc(d.description)}</td><td ${td}>${esc(d.owner) || "—"}</td><td ${td}>${esc(d.remarks) || "—"}</td></tr>`).join("")}</table>`
   : `<p style="margin:0;padding:12px 14px;background:${C.ochreSoft};border-left:4px solid ${C.ochre};font-size:14px">
        <b>0 designs. No Design Discussed.</b>${latest.recorded ? (latest.remarks ? ` ${esc(latest.remarks)}` : "") : ` Nothing was recorded for this Friday, so it counts as no design discussed. If designs were discussed, <a href="${DASHBOARD_URL}" style="color:${C.blue}">add them on the dashboard</a>.`}</p>`;
 
@@ -108,7 +110,7 @@ const html = `<!doctype html><html><body style="margin:0;background:#F3F6FA;font
 <div style="font-size:12px;color:${C.muted};margin-top:12px">Sent automatically by n8n every Friday after the 5:00 PM board.</div>
 </td></tr></table></body></html>`;
 
-const text = [subject, "", ...(latest.count ? latest.designs.map(d => `- ${d.designName}: ${d.description}${d.owner ? ` (${d.owner})` : ""}`) : ["0 designs. No Design Discussed."]),
+const text = [subject, "", ...(latest.count ? latest.designs.map(d => `- ${d.designName}: ${d.description}${d.owner ? ` (${d.owner})` : ""}${madeUp(d)}`) : ["0 designs. No Design Discussed."]),
   "", `Last ${WEEKS_IN_SUMMARY} Fridays:`, ...weeks.slice().reverse().map(w => `${short(w.f)}  ${w.count}  ${w.count ? "Discussed" : "No Design Discussed"}`),
   "", `Dashboard: ${DASHBOARD_URL}`].join("\n");
 

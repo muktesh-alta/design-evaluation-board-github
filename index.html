@@ -47,8 +47,15 @@
   </div>
   <div class="dlg-body">
     <p class="form-alert" id="formAlert" role="alert"></p>
+    <div class="field" id="heldField">
+      <span class="lbl" id="held-lbl">Held on</span>
+      <div class="seg" role="radiogroup" aria-labelledby="held-lbl">
+        <input type="radio" name="held" id="held-fri" value="friday" checked><label for="held-fri">Friday meeting</label>
+        <input type="radio" name="held" id="held-other" value="other"><label for="held-other">Another day (make-up)</label>
+      </div>
+    </div>
     <div class="field">
-      <label for="f-date">Meeting date<span class="req" aria-hidden="true">*</span></label>
+      <label for="f-date" id="f-date-lbl">Meeting date<span class="req" aria-hidden="true">*</span></label>
       <input class="input" type="date" id="f-date">
       <p class="err" id="e-meetingDate"></p>
       <p class="warn" id="w-meetingDate"></p>

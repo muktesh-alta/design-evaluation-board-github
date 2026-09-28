@@ -162,6 +162,16 @@ function designLabel(d) {
   return text.length > 40 ? text.slice(0, 40).replace(/\s+\S*$/, "") + "…" : text;
 }
 
+/** " · Monday" for a design discussed on a make-up day, empty for the Friday meeting. */
+const makeUpTag = d => DateUtil.isISO(d.meetingDate) && DateUtil.dow(d.meetingDate) !== MEETING.weekday
+  ? ` · <span title="Make-up session on ${DateUtil.long(d.meetingDate)}">${DateUtil.dayName(d.meetingDate)}</span>` : "";
+
+/** "Make-up: Monday, Tuesday" when some of a week's designs were discussed after the Friday. */
+const makeUpDays = w => {
+  const days = [...new Set(w.designs.filter(d => d.meetingDate !== w.friday).map(d => DateUtil.dayName(d.meetingDate)))];
+  return days.length ? `<span class="auto">Make-up: ${days.join(", ")}</span>` : "";
+};
+
 function renderLatest({ latest }) {
   const el = $("#latest");
   if (!latest) {
@@ -171,7 +181,7 @@ function renderLatest({ latest }) {
   }
   const none = latest.designCount === 0;
   el.className = "latest" + (none ? " empty-week" : "");
-  const names = latest.designs.slice(0, 4).map(d => `<li title="${esc(d.designName)}"><b>${esc(designLabel(d))}</b>${d.owner ? `, ${esc(d.owner)}` : ""}</li>`).join("");
+  const names = latest.designs.slice(0, 4).map(d => `<li title="${esc(d.designName)}"><b>${esc(designLabel(d))}</b>${d.owner ? `, ${esc(d.owner)}` : ""}${makeUpTag(d)}</li>`).join("");
   const more = latest.designs.length > 4 ? `<li>and ${latest.designs.length - 4} more</li>` : "";
   el.innerHTML = `
     <h2>Latest Design Evaluation Board</h2>
@@ -299,7 +309,7 @@ function renderSummary({ summaryWeeks, weeks }) {
       <td class="nowrap">${w.weekLabel}</td>
       <td class="nowrap">${DateUtil.short(w.friday)}</td>
       <td><div class="bar"><span class="track ${none ? "hatch" : ""}"><i style="width:${(w.designCount / max) * 100}%"></i></span><b>${w.designCount}</b></div></td>
-      <td>${none ? `<span class="pill n">No Design Discussed</span>` : `<span class="pill d">Discussed</span>`}${none && !w.explicitNone ? `<span class="auto">Added automatically</span>` : ""}</td></tr>`;
+      <td>${none ? `<span class="pill n">No Design Discussed</span>` : `<span class="pill d">Discussed</span>`}${none && !w.explicitNone ? `<span class="auto">Added automatically</span>` : ""}${makeUpDays(w)}</td></tr>`;
   }
   t.innerHTML = html + "</tbody>";
 }
@@ -336,7 +346,7 @@ function renderDetails(v) {
            <button class="icon-btn" data-act="del" data-id="${esc(r.id)}" aria-label="Delete record" title="Delete">${ICON.del}</button>`;
       return `<tr class="${none ? "nodesign" : ""}">
         <td class="nowrap">${r.weekLabel}<span class="auto">${r.monthLabel}</span></td>
-        <td class="nowrap">${DateUtil.short(r.meetingDate)}${r.meetingDate !== r.friday ? `<span class="auto">${DateUtil.dayName(r.meetingDate)}</span>` : ""}</td>
+        <td class="nowrap">${DateUtil.short(r.meetingDate)}${r.meetingDate !== r.friday ? `<span class="auto">${DateUtil.dayName(r.meetingDate)} (make-up)</span>` : ""}</td>
         <td>${none ? `<span class="pill n">No Design Discussed</span>` : `<span class="pill d">Discussed</span>`}</td>
         <td>${none ? `<span class="muted">—</span>` : `<b>${esc(r.designName)}</b>`}</td>
         <td class="desc">${esc(r.description)}${r.synthetic ? `<span class="auto">No record entered for this Friday</span>` : ""}</td>
@@ -398,13 +408,30 @@ function bindFilterEvents() {
 }
 
 /* ---------- record dialog ---------- */
-const dlg = { el: null, editing: null, confirmedWarn: false };
+const dlg = { el: null, editing: null };
 function statusValue() { return document.querySelector('input[name="st"]:checked').value; }
+function heldValue() { return document.querySelector('input[name="held"]:checked').value; }
 function syncStatusFields() {
   const none = statusValue() === STATUS.NONE;
+  if (none) $("#held-fri").checked = true;          // "no design" is always recorded against a Friday
+  $("#heldField").classList.toggle("hide", none);
   $("#designFields").classList.toggle("hide", none);
   $("#noneFields").classList.toggle("hide", !none);
   $("#saveAnother").classList.toggle("hide", none || !!dlg.editing);
+  syncHeldOn();
+}
+/** Label the date for the chosen option and explain which Friday a make-up day counts toward. */
+function syncHeldOn() {
+  const other = heldValue() === "other", date = $("#f-date").value;
+  $("#f-date-lbl").firstChild.textContent = other ? "Date discussed" : "Meeting date";
+  $("#w-meetingDate").textContent = other && DateUtil.isISO(date) && DateUtil.dow(date) !== MEETING.weekday ? Validator.makeUpNote(date) : "";
+}
+function onHeldChange() {
+  const date = $("#f-date").value, today = DateUtil.today();
+  if (heldValue() === "other") { if (!DateUtil.isISO(date) || DateUtil.dow(date) === MEETING.weekday) $("#f-date").value = today; }
+  else if (DateUtil.isISO(date)) $("#f-date").value = DateUtil.fridayOnOrBefore(date);
+  $("#e-meetingDate").textContent = ""; $("#f-date").removeAttribute("aria-invalid");
+  syncHeldOn();
 }
 function clearErrors() {
   ["meetingDate", "status", "designName", "description"].forEach(k => { const e = $("#e-" + k); if (e) e.textContent = ""; });
@@ -413,13 +440,14 @@ function clearErrors() {
 }
 function openRecord(rec = null, preset = {}) {
   if (state.readOnly) return;
-  dlg.editing = rec; dlg.confirmedWarn = false;
+  dlg.editing = rec;
   clearErrors();
   const src = rec || { meetingDate: preset.meetingDate || DateUtil.fridayOnOrBefore(DateUtil.today()), status: STATUS.DISCUSSED };
   $("#dlgTitle").textContent = rec ? "Edit record" : "Add weekly record";
   $("#dlgSub").textContent = rec ? `Meeting on ${DateUtil.long(rec.meetingDate)}` : "Record a design from a Friday meeting, or mark a week with no design.";
   $("#f-date").value = src.meetingDate || "";
   $(src.status === STATUS.NONE ? "#st-none" : "#st-disc").checked = true;
+  $(DateUtil.isISO(src.meetingDate) && DateUtil.dow(src.meetingDate) !== MEETING.weekday ? "#held-other" : "#held-fri").checked = true;
   $("#f-name").value = src.designName || ""; $("#f-desc").value = rec && rec.status === STATUS.DISCUSSED ? rec.description || "" : "";
   $("#f-owner").value = src.owner || ""; $("#f-remarks").value = src.remarks || ""; $("#f-remarks2").value = src.remarks || "";
   ENHANCEMENT_FIELDS.forEach(([k]) => { $("#f-" + k).value = src[k] || ""; });
@@ -430,7 +458,7 @@ function openRecord(rec = null, preset = {}) {
 }
 function readForm() {
   const none = statusValue() === STATUS.NONE;
-  return { meetingDate: $("#f-date").value, status: statusValue(), designName: $("#f-name").value, description: $("#f-desc").value,
+  return { meetingDate: $("#f-date").value, status: statusValue(), heldOn: heldValue(), designName: $("#f-name").value, description: $("#f-desc").value,
     owner: $("#f-owner").value, remarks: none ? $("#f-remarks2").value : $("#f-remarks").value,
     ...Object.fromEntries(ENHANCEMENT_FIELDS.map(([k]) => [k, $("#f-" + k).value])) };
 }
@@ -440,11 +468,8 @@ async function saveRecord(another) {
   const res = Validator.validate(input, DataService.getDesigns(), dlg.editing?.id ?? null);
   const map = { meetingDate: "#f-date", designName: "#f-name", description: "#f-desc" };
   for (const [k, m] of Object.entries(res.errors)) { $("#e-" + k).textContent = m; if (map[k]) $(map[k]).setAttribute("aria-invalid", "true"); }
+  syncHeldOn();
   if (!res.ok) { const first = Object.keys(res.errors).find(k => map[k]); if (first) $(map[first]).focus(); return; }
-  if (res.warnings.meetingDate && !dlg.confirmedWarn) {
-    $("#w-meetingDate").textContent = res.warnings.meetingDate + " Select save again to confirm.";
-    dlg.confirmedWarn = true; $("#saveBtn").textContent = "Save anyway"; return;
-  }
   const rec = Validator.normalize(input);
   const btns = [$("#saveBtn"), $("#saveAnother")]; btns.forEach(b => b.disabled = true);
   try {
@@ -457,10 +482,11 @@ async function saveRecord(another) {
       for (const p of DataService.getDesigns().filter(r => r.status === STATUS.NONE && r.id !== dlg.editing?.id && DateUtil.weekFriday(r.meetingDate) === f)) { await DataService.deleteDesign(p.id); replaced++; }
     }
     const when = DateUtil.short(DateUtil.weekFriday(rec.meetingDate));
-    toast(dlg.editing ? "Changes saved." : rec.status === STATUS.NONE ? `${when} saved as no design discussed.` : `"${rec.designName}" added to ${when}.` + (replaced ? " The no design marker for that week was removed." : ""));
+    const makeUp = rec.day !== MEETING.day ? ` (make-up on ${rec.day})` : "";
+    toast(dlg.editing ? "Changes saved." : rec.status === STATUS.NONE ? `${when} saved as no design discussed.` : `"${rec.designName}" added to the ${when} week${makeUp}.` + (replaced ? " The no design marker for that week was removed." : ""));
     ensureInRange(rec.meetingDate);
     if (another) {
-      $("#f-name").value = ""; $("#f-desc").value = ""; $("#f-remarks").value = ""; $("#f-name").focus(); dlg.confirmedWarn = true;
+      $("#f-name").value = ""; $("#f-desc").value = ""; $("#f-remarks").value = ""; $("#f-name").focus();
     } else $("#recordDlg").close();
   } catch (e) { handleWriteError(e, $("#formAlert")); }
   finally { btns.forEach(b => b.disabled = false); if (!dlg.editing && !another) $("#saveBtn").textContent = "Save record"; }
@@ -555,7 +581,8 @@ function toast(msg, bad = false) {
 function wireGlobal() {
   $("#addBtn").addEventListener("click", () => openRecord());
   document.querySelectorAll('input[name="st"]').forEach(r => r.addEventListener("change", () => { clearErrors(); syncStatusFields(); }));
-  $("#f-date").addEventListener("change", () => { dlg.confirmedWarn = false; $("#w-meetingDate").textContent = ""; $("#saveBtn").textContent = dlg.editing ? "Save changes" : "Save record"; });
+  document.querySelectorAll('input[name="held"]').forEach(r => r.addEventListener("change", onHeldChange));
+  $("#f-date").addEventListener("change", () => { $("#e-meetingDate").textContent = ""; $("#f-date").removeAttribute("aria-invalid"); syncHeldOn(); });
   $("#saveBtn").addEventListener("click", () => saveRecord(false));
   $("#saveAnother").addEventListener("click", () => saveRecord(true));
   document.querySelectorAll("dialog [data-close]").forEach(b => b.addEventListener("click", () => b.closest("dialog").close()));

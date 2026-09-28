@@ -23,10 +23,13 @@ const DateUtil = (() => {
   const addDays = (s, n) => { const d = parse(s); d.setUTCDate(d.getUTCDate() + n); return fmt(d); };
   const dow = s => parse(s).getUTCDay();
   const today = () => { const n = new Date(); return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`; };
-  /** Meeting week runs Saturday → Friday; returns that week's Friday. */
-  const weekFriday = s => addDays(s, (MEETING.weekday - dow(s) + 7) % 7);
   /** Most recent Friday on or before s. */
   const fridayOnOrBefore = s => addDays(s, -((dow(s) - MEETING.weekday + 7) % 7));
+  /** First Friday on or after s. */
+  const fridayOnOrAfter = s => addDays(s, (MEETING.weekday - dow(s) + 7) % 7);
+  /** Meeting week runs Friday → Thursday, so a make-up session on Mon–Thu
+   *  counts toward the Friday meeting just before it. Returns that Friday. */
+  const weekFriday = fridayOnOrBefore;
   const short = s => { const d = parse(s); return `${pad(d.getUTCDate())}-${MON[d.getUTCMonth()]}-${d.getUTCFullYear()}`; };
   const tick = s => { const d = parse(s); return `${pad(d.getUTCDate())} ${MON[d.getUTCMonth()]}`; };
   const long = s => { const d = parse(s); return `${DAY[d.getUTCDay()]}, ${pad(d.getUTCDate())}-${MON[d.getUTCMonth()]}-${d.getUTCFullYear()}`; };
@@ -34,7 +37,7 @@ const DateUtil = (() => {
   const monthKey = s => s.slice(0, 7);
   const monthLabel = s => { const d = parse(s); return `${MONTH[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
   const weekOfMonth = s => Math.ceil(parse(s).getUTCDate() / 7);
-  return { parse, fmt, addDays, dow, today, weekFriday, fridayOnOrBefore, short, tick, long, dayName, monthKey, monthLabel, weekOfMonth, isISO, MON };
+  return { parse, fmt, addDays, dow, today, weekFriday, fridayOnOrBefore, fridayOnOrAfter, short, tick, long, dayName, monthKey, monthLabel, weekOfMonth, isISO, MON };
 })();
 
 /* ---------- Weekly engine: every Friday in range becomes a week ---------- */
@@ -54,7 +57,7 @@ const WeeklyEngine = {
       byFriday.get(f).push(r);
     }
     const weeks = [];
-    for (let f = DateUtil.weekFriday(start); f <= end; f = DateUtil.addDays(f, 7)) {
+    for (let f = DateUtil.fridayOnOrAfter(start); f <= end; f = DateUtil.addDays(f, 7)) {
       const recs = byFriday.get(f) || [];
       if (f > today && recs.length === 0) continue; // future, nothing planned yet
       const designs = recs.filter(r => r.status === STATUS.DISCUSSED)
@@ -163,8 +166,11 @@ const Validator = {
     const date = (input.meetingDate || "").trim();
     if (!date) errors.meetingDate = "Choose the meeting date.";
     else if (!DateUtil.isISO(date)) errors.meetingDate = "Enter a valid date.";
-    else if (DateUtil.dow(date) !== MEETING.weekday)
-      warnings.meetingDate = `${DateUtil.dayName(date)} isn't a Friday. It will be filed under the meeting on ${DateUtil.long(DateUtil.weekFriday(date))}.`;
+    else if (DateUtil.dow(date) !== MEETING.weekday) {
+      if (input.status === STATUS.NONE || input.heldOn !== "other")
+        errors.meetingDate = `${DateUtil.dayName(date)} isn't a Friday. Pick the Friday, or choose "Another day" for a make-up session.`;
+      else warnings.meetingDate = Validator.makeUpNote(date);
+    }
 
     if (input.status === STATUS.DISCUSSED) {
       if (!(input.designName || "").trim()) errors.designName = "Design name is required when a design was discussed.";
@@ -187,6 +193,11 @@ const Validator = {
       }
     }
     return { errors, warnings, ok: Object.keys(errors).length === 0 };
+  },
+
+  /** Informational note for a make-up session held on a day other than Friday. */
+  makeUpNote(date) {
+    return `Make-up session on ${DateUtil.long(date)}. It counts toward the Friday ${DateUtil.short(DateUtil.weekFriday(date))} meeting.`;
   },
 
   normalize(input) {
