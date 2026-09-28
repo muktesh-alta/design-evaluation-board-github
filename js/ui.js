@@ -319,7 +319,7 @@ function renderDetails(v) {
   const cols = [
     ["week", "Week"], ["date", "Meeting date"], ["status", "Design status"], ["designName", "Design name"],
     [null, "Design description"], ["owner", "Owner or presenter"], [null, "Remarks"],
-    ...ENHANCEMENT_FIELDS.map(([k, l]) => [k === "enhancementName" ? null : k, l]),
+    ...ENHANCEMENT_FIELDS,
     [null, "<span class='sr'>Actions</span>"]
   ];
   const head = cols.map(([k, l]) => {
@@ -352,7 +352,7 @@ function renderDetails(v) {
         <td class="desc">${esc(r.description)}${r.synthetic ? `<span class="auto">No record entered for this Friday</span>` : ""}</td>
         <td class="nowrap">${esc(r.owner) || `<span class="muted">—</span>`}</td>
         <td class="desc" style="min-width:140px">${esc(r.remarks) || `<span class="muted">—</span>`}</td>
-        ${ENHANCEMENT_FIELDS.map(([k]) => `<td class="${k === "enhancementName" ? "desc" : "nowrap"}">${esc(r[k]) || `<span class="muted">—</span>`}</td>`).join("")}
+        ${ENHANCEMENT_FIELDS.map(([k]) => `<td class="nowrap">${esc(r[k]) || `<span class="muted">—</span>`}</td>`).join("")}
         <td><div class="row-actions">${acts}</div></td></tr>`;
     }).join("") + "</tbody>";
   }

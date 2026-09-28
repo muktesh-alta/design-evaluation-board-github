@@ -5,7 +5,7 @@ const STATUS = Object.freeze({ DISCUSSED: "Discussed", NONE: "No Design Discusse
 const MEETING = Object.freeze({ day: "Friday", time: "5:00 PM", weekday: 5 });
 /** Optional enhancement details stored with each design: [record key = sheet column, label]. */
 const ENHANCEMENT_FIELDS = Object.freeze([
-  ["jiraId", "JIRA ID"], ["enhancementId", "Enhancement ID"], ["enhancementName", "Enhancement Name"],
+  ["jiraId", "JIRA ID"], ["enhancementId", "Enhancement ID"],
   ["component", "Component"], ["clientName", "Client Name"], ["scopedInSprint", "Is Scoped in Sprint Backlog"], ["sprint", "Sprint"]
 ]);
 const enhancementValues = (r, blank = false) =>

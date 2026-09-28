@@ -4,7 +4,7 @@
 const DASHBOARD_URL = "https://muktesh-alta.github.io/design-evaluation-board-github/";
 const WEEKS_IN_SUMMARY = 4;          // trailing Fridays shown in the email
 // ---- shared helpers (Google Sheets values -> clean records) ----
-const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","enhancementName","component","clientName","scopedInSprint","sprint"];
+const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","component","clientName","scopedInSprint","sprint"];
 function isoDate(v) {
   if (v === null || v === undefined || v === "") return "";
   if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v))) {           // Sheets serial date
