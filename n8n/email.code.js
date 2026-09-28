@@ -136,9 +136,13 @@ const summaryRows = weeks.slice().reverse().map(w => {
     <td align="right" style="${td}">${pill(w.count)}</td></tr>`;
 }).join("");
 
+// Meeting week runs Friday → Thursday, e.g. "25 Sep – 01 Oct 2026"
+const weekRange = f => { const e = add(f, 6), [fd, fm, fy] = short(f).split("-"), [ed, em, ey] = short(e).split("-");
+  return fy === ey ? `${fd} ${fm} – ${ed} ${em} ${ey}` : `${fd} ${fm} ${fy} – ${ed} ${em} ${ey}`; };
+const weekLabel = `Week ${weekRange(latest.f)} (Fri–Thu)`;
 const subject = latest.count
-  ? `Design Evaluation Board · ${short(latest.f)} · ${latest.count} design${latest.count === 1 ? "" : "s"} discussed`
-  : `Design Evaluation Board · ${short(latest.f)} · No design discussed`;
+  ? `Design Evaluation Board · ${weekLabel} · ${latest.count} design${latest.count === 1 ? "" : "s"} discussed`
+  : `Design Evaluation Board · ${weekLabel} · No design discussed`;
 const preheader = latest.count
   ? latest.designs.slice(0, 3).map(d => idOf(d) || d.designName).join(", ") + (latest.count > 3 ? ` and ${latest.count - 3} more` : "")
   : "No design was discussed this Friday.";
@@ -158,7 +162,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
   <tr><td bgcolor="${C.navy}" style="background:${C.navy};background-image:linear-gradient(135deg,${C.navy2} 0%,${C.navy} 65%);border-radius:14px 14px 0 0;padding:26px 28px">
     <div style="font-size:11px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:${C.navyMuted}">Latest board meeting</div>
     <div style="font-size:24px;font-weight:700;color:#fff;margin-top:8px;line-height:1.25">${long(latest.f)}</div>
-    <div style="font-size:14px;color:${C.navyMuted};margin-top:2px">5:00 PM</div>
+    <div style="font-size:14px;color:${C.navyMuted};margin-top:2px">5:00 PM &nbsp;·&nbsp; ${weekLabel}</div>
     <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:16px"><tr>
       <td style="font-size:52px;font-weight:800;line-height:1;color:${latest.count ? "#fff" : C.hatch};letter-spacing:-1.5px">${latest.count}</td>
       <td style="padding-left:12px;vertical-align:bottom;padding-bottom:6px;font-size:15px;color:${C.navyMuted}">design${latest.count === 1 ? "" : "s"} discussed</td>
