@@ -29,7 +29,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--paper) linear-gradient(180deg,var(--cobalt-soft) 0,transparent 340px) no-repeat;color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
-.wrap{max-width:1320px;margin:0 auto;padding:28px 28px 64px}
+.wrap{max-width:1880px;margin:0 auto;padding:28px clamp(16px,2.2vw,40px) 64px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* hatched "empty slot" motif — used for every Friday without a design */
