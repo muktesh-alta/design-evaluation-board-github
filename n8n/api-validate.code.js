@@ -1,7 +1,7 @@
 // n8n Code node: "Validate record"  (mode: Run Once for All Items)
 // Input: the POST webhook item. Body must be { record: {...} }.
 // ---- shared helpers (Google Sheets values -> clean records) ----
-const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","component","clientName","scopedInSprint","sprint"];
+const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","component","clientName","scopedInSprint","sprint","qaWrittenBy","qaReviewedBy","testingDoneBy"];
 function isoDate(v) {
   if (v === null || v === undefined || v === "") return "";
   if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v))) {           // Sheets serial date
@@ -67,6 +67,9 @@ return [{ json: {
     clientName: status === "Discussed" ? clip(r.clientName, 200) : "",
     scopedInSprint: status === "Discussed" ? ({ yes: "Yes", no: "No" }[String(r.scopedInSprint || "").trim().toLowerCase()] || "") : "",
     sprint: status === "Discussed" ? clip(r.sprint, 100) : "",
+    qaWrittenBy: status === "Discussed" ? clip(r.qaWrittenBy, 200) : "",
+    qaReviewedBy: status === "Discussed" ? clip(r.qaReviewedBy, 200) : "",
+    testingDoneBy: status === "Discussed" ? clip(r.testingDoneBy, 200) : "",
     deleted: deleted ? "TRUE" : "FALSE"
   }
 } }];

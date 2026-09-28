@@ -4,7 +4,7 @@
 const DASHBOARD_URL = "https://muktesh-alta.github.io/design-evaluation-board-github/";
 const WEEKS_IN_SUMMARY = 4;          // trailing Fridays shown in the email
 // ---- shared helpers (Google Sheets values -> clean records) ----
-const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","component","clientName","scopedInSprint","sprint"];
+const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","component","clientName","scopedInSprint","sprint","qaWrittenBy","qaReviewedBy","testingDoneBy"];
 function isoDate(v) {
   if (v === null || v === undefined || v === "") return "";
   if (typeof v === "number" || /^\d{5}(\.\d+)?$/.test(String(v))) {           // Sheets serial date
@@ -89,6 +89,10 @@ const designCard = d => {
     .filter(([, v]) => v)
     .map(([k, v]) => `<span style="white-space:nowrap">${String(v).toLowerCase().includes(k.toLowerCase()) ? "" : `<span style="color:${C.muted}">${k}</span>&nbsp;`}<b style="color:${C.ink2};font-weight:600">${esc(v)}</b></span>`)
     .join(`<span style="color:${C.line}">&nbsp;&nbsp;|&nbsp;&nbsp;</span>`);
+  const qa = [["Test cases written", d.qaWrittenBy], ["Reviewed", d.qaReviewedBy], ["Tested", d.testingDoneBy]]
+    .filter(([, v]) => v)
+    .map(([k, v]) => `<span style="white-space:nowrap"><span style="color:${C.muted}">${k}</span>&nbsp;<b style="color:${C.ink2};font-weight:600">${esc(v)}</b></span>`)
+    .join(`<span style="color:${C.line}">&nbsp;&nbsp;|&nbsp;&nbsp;</span>`);
   const jira = d.jiraId && d.jiraId !== id && TICKET.test(d.jiraId) ? `&nbsp;${chip(d.jiraId, C.line2, C.ink2)}` : "";
   return `<tr><td style="padding:0 0 12px">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border:1px solid ${C.line};border-left:4px solid ${C.blue};border-radius:10px;background:${C.surface}">
@@ -98,6 +102,7 @@ const designCard = d => {
         </tr></table>
         ${d.description && d.description !== d.designName ? `<div style="margin-top:8px;font-size:14px;line-height:1.5;color:${C.ink2}">${esc(d.description)}</div>` : ""}
         ${meta ? `<div style="margin-top:10px;font-size:12.5px;line-height:1.8">${meta}</div>` : ""}
+        ${qa ? `<div style="margin-top:6px;font-size:12.5px;line-height:1.8"><span style="display:inline-block;padding:1px 7px;margin-right:8px;border-radius:5px;background:${C.blueSoft};color:${C.blue};font-size:11px;font-weight:700;letter-spacing:.4px">QA</span>${qa}</div>` : ""}
         ${d.remarks ? `<div style="margin-top:10px;padding:8px 10px;border-radius:6px;background:${C.paper};font-size:13px;color:${C.ink2}"><span style="color:${C.muted}">Remarks</span>&nbsp; ${esc(d.remarks)}</div>` : ""}
       </td></tr>
     </table></td></tr>`;

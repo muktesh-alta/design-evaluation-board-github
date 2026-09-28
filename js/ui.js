@@ -317,7 +317,7 @@ function renderDetails(v) {
   const cols = [
     ["week", "Week"], ["date", "Meeting date"], ["status", "Design status"], ["designName", "Design name"],
     [null, "Design description"], ["owner", "Owner or presenter"], [null, "Remarks"],
-    ...ENHANCEMENT_FIELDS,
+    ...DETAIL_FIELDS,
     [null, "<span class='sr'>Actions</span>"]
   ];
   const head = cols.map(([k, l]) => {
@@ -350,7 +350,7 @@ function renderDetails(v) {
         <td class="desc">${esc(r.description)}${r.synthetic ? `<span class="auto">No record entered for this Friday</span>` : ""}</td>
         <td class="nowrap">${esc(r.owner) || `<span class="muted">—</span>`}</td>
         <td class="desc" style="min-width:140px">${esc(r.remarks) || `<span class="muted">—</span>`}</td>
-        ${ENHANCEMENT_FIELDS.map(([k]) => `<td class="nowrap">${!r[k] ? `<span class="muted">—</span>` : k === "jiraId" || k === "enhancementId" ? `<span class="code">${esc(r[k])}</span>` : esc(r[k])}</td>`).join("")}
+        ${DETAIL_FIELDS.map(([k]) => `<td class="nowrap">${!r[k] ? `<span class="muted">—</span>` : k === "jiraId" || k === "enhancementId" ? `<span class="code">${esc(r[k])}</span>` : esc(r[k])}</td>`).join("")}
         <td><div class="row-actions">${acts}</div></td></tr>`;
     }).join("") + "</tbody>";
   }
@@ -448,7 +448,7 @@ function openRecord(rec = null, preset = {}) {
   $(DateUtil.isISO(src.meetingDate) && DateUtil.dow(src.meetingDate) !== MEETING.weekday ? "#held-other" : "#held-fri").checked = true;
   $("#f-name").value = src.designName || ""; $("#f-desc").value = rec && rec.status === STATUS.DISCUSSED ? rec.description || "" : "";
   $("#f-owner").value = src.owner || ""; $("#f-remarks").value = src.remarks || ""; $("#f-remarks2").value = src.remarks || "";
-  ENHANCEMENT_FIELDS.forEach(([k]) => { $("#f-" + k).value = src[k] || ""; });
+  DETAIL_FIELDS.forEach(([k]) => { $("#f-" + k).value = src[k] || ""; });
   $("#saveBtn").textContent = rec ? "Save changes" : "Save record";
   syncStatusFields();
   $("#recordDlg").showModal();
@@ -458,7 +458,7 @@ function readForm() {
   const none = statusValue() === STATUS.NONE;
   return { meetingDate: $("#f-date").value, status: statusValue(), heldOn: heldValue(), designName: $("#f-name").value, description: $("#f-desc").value,
     owner: $("#f-owner").value, remarks: none ? $("#f-remarks2").value : $("#f-remarks").value,
-    ...Object.fromEntries(ENHANCEMENT_FIELDS.map(([k]) => [k, $("#f-" + k).value])) };
+    ...Object.fromEntries(DETAIL_FIELDS.map(([k]) => [k, $("#f-" + k).value])) };
 }
 async function saveRecord(another) {
   clearErrors();

@@ -8,8 +8,14 @@ const ENHANCEMENT_FIELDS = Object.freeze([
   ["jiraId", "JIRA ID"], ["enhancementId", "Enhancement ID"],
   ["component", "Component"], ["clientName", "Client Name"], ["scopedInSprint", "Is Scoped in Sprint Backlog"], ["sprint", "Sprint"]
 ]);
+/** Optional QA sign-off stored with each design. */
+const QA_FIELDS = Object.freeze([
+  ["qaWrittenBy", "QA Test Case Written By"], ["qaReviewedBy", "QA Test Cases Reviewed By"], ["testingDoneBy", "Testing Done By"]
+]);
+/** Every optional detail column, in sheet / table / export order. */
+const DETAIL_FIELDS = Object.freeze([...ENHANCEMENT_FIELDS, ...QA_FIELDS]);
 const enhancementValues = (r, blank = false) =>
-  Object.fromEntries(ENHANCEMENT_FIELDS.map(([k]) => [k, blank ? "" : String(r[k] ?? "").trim()]));
+  Object.fromEntries(DETAIL_FIELDS.map(([k]) => [k, blank ? "" : String(r[k] ?? "").trim()]));
 
 /* ---------- Dates: ISO "YYYY-MM-DD" strings, arithmetic in UTC ---------- */
 const DateUtil = (() => {
@@ -137,7 +143,7 @@ const TableQuery = {
       if (f.week && r.friday !== f.week) return false;
       if (q) {
         const hay = [r.designName, r.description, r.owner, r.remarks, r.status, DateUtil.short(r.meetingDate), r.weekLabel,
-          ...ENHANCEMENT_FIELDS.map(([k]) => r[k])].join(" ").toLowerCase();
+          ...DETAIL_FIELDS.map(([k]) => r[k])].join(" ").toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -220,9 +226,9 @@ const Validator = {
 /* ---------- Export builders (pure: return data, UI saves it) ---------- */
 const Exporter = {
   detailColumns: ["Week", "Meeting Date", "Day", "Meeting Time", "Design Status", "Design Name", "Design Description", "Owner/Presenter", "Remarks",
-    ...ENHANCEMENT_FIELDS.map(([, l]) => l)],
+    ...DETAIL_FIELDS.map(([, l]) => l)],
   detailRow: r => [`${r.weekLabel}, ${r.monthLabel}`, DateUtil.short(r.meetingDate), DateUtil.dayName(r.meetingDate), MEETING.time,
-    r.status, r.designName || "—", r.description, r.owner, r.remarks, ...ENHANCEMENT_FIELDS.map(([k]) => r[k] || "")],
+    r.status, r.designName || "—", r.description, r.owner, r.remarks, ...DETAIL_FIELDS.map(([k]) => r[k] || "")],
   summaryColumns: ["Week", "Meeting Date", "Design Count", "Status"],
   summaryRow: w => [`${w.weekLabel}, ${w.monthLabel}`, DateUtil.short(w.friday), w.designCount, w.status],
   toCSV(columns, rows) {
@@ -231,4 +237,4 @@ const Exporter = {
   }
 };
 
-if (typeof module !== "undefined" && module.exports) module.exports = { STATUS, MEETING, ENHANCEMENT_FIELDS, DateUtil, WeeklyEngine, TableQuery, Validator, Exporter };
+if (typeof module !== "undefined" && module.exports) module.exports = { STATUS, MEETING, ENHANCEMENT_FIELDS, QA_FIELDS, DETAIL_FIELDS, DateUtil, WeeklyEngine, TableQuery, Validator, Exporter };

@@ -50,7 +50,7 @@ Steps 2 and 3 make records shared and let n8n read them for the email.
 
 1. Create a Google Sheet and rename the first tab to **`Designs`** (exact spelling).
 2. Paste this header into row 1 (or import `data/designs-sheet-template.csv`):
-   `id, meetingDate, day, meetingTime, status, designName, description, owner, remarks, createdAt, updatedAt, deleted, jiraId, enhancementId, component, clientName, scopedInSprint, sprint`
+   `id, meetingDate, day, meetingTime, status, designName, description, owner, remarks, createdAt, updatedAt, deleted, jiraId, enhancementId, component, clientName, scopedInSprint, sprint, qaWrittenBy, qaReviewedBy, testingDoneBy`
 3. Select column **B (meetingDate)** and choose **Format → Number → Plain text**. This stops Sheets from turning dates into `9/4/2026`. The workflows also normalise dates if this is missed.
 4. Optional: import `data/designs-demo-data.csv` to see the dashboard with sample data.
 5. Copy the sheet's URL.
