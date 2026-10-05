@@ -6,6 +6,11 @@ window.DEB_CONFIG = {
      "n8n"   = records read/saved through your n8n webhooks + Google Sheet. */
   storage: "n8n",
 
+  /* First Friday that counts. Earlier Fridays are not shown or counted
+     (on the dashboard and in the weekly email), so weeks before tracking
+     began are never reported as "No design discussed". */
+  trackingStart: "2026-09-25",
+
   /* Names suggested in "Owner or presenter" when adding a record.
      Names already used in records are suggested too; any other name can still be typed. */
   owners: ["Abhilash", "Anurag", "Avnish", "Hitesh", "Manpreet", "Mohit", "Neha", "Saksham"],

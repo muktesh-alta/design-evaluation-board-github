@@ -3,6 +3,7 @@
 // ---------- settings ----------
 const DASHBOARD_URL = "https://muktesh-alta.github.io/design-evaluation-board-github/";
 const WEEKS_IN_SUMMARY = 4;          // trailing Fridays shown in the email
+const TRACKING_START = "2026-09-25"; // first counted Friday; earlier Fridays are never shown or counted
 // ---- shared helpers (Google Sheets values -> clean records) ----
 const FIELDS = ["id","meetingDate","day","meetingTime","status","designName","description","owner","remarks","createdAt","updatedAt","jiraId","enhancementId","component","clientName","scopedInSprint","sprint","qaWrittenBy","qaReviewedBy","testingDoneBy"];
 function isoDate(v) {
@@ -60,6 +61,7 @@ const thisFri = fridayOnOrBefore(today);
 const weeks = [];
 for (let k = WEEKS_IN_SUMMARY - 1; k >= 0; k--) {
   const f = add(thisFri, -7 * k);
+  if (f < TRACKING_START) continue;
   const designs = (byFri[f] || []).filter(r => r.status === "Discussed");
   const marker = (byFri[f] || []).find(r => r.status === "No Design Discussed");
   const hol = (byFri[f] || []).find(r => r.status === "Holiday");
@@ -189,7 +191,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
     ${latestBlock}
 
     <div style="height:12px;line-height:12px">&nbsp;</div>
-    ${eyebrow(`Last ${WEEKS_IN_SUMMARY} Fridays`)}
+    ${eyebrow(`Last ${weeks.length} Friday${weeks.length === 1 ? "" : "s"}`)}
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
       ${kpi(holidays ? `Weeks (${holidays} hol.)` : "Weeks", working, C.blue)}${kpi("Designs", total, C.blue)}${kpi("No design", working - withD, C.ochre, C.ochre)}${kpi("Rate", rate + "%", C.blue)}
     </tr></table>
@@ -209,7 +211,7 @@ const text = [subject, "",
   ...(latest.count
     ? latest.designs.map(d => `- ${idOf(d) ? idOf(d) + " " : ""}${d.designName}${d.owner ? ` (${d.owner})` : ""}${madeUp(d)}${d.description && d.description !== d.designName ? `\n  ${d.description}` : ""}`)
     : [latest.holiday ? `Official holiday${latest.remarks ? " (" + latest.remarks + ")" : ""}. Not counted.` : "No design discussed."]),
-  "", `Last ${WEEKS_IN_SUMMARY} Fridays: ${total} designs, ${working - withD} weeks with none, ${rate}% discussion rate${holidays ? ` (${holidays} holiday${holidays === 1 ? "" : "s"} excluded)` : ""}`,
+  "", `Last ${weeks.length} Friday${weeks.length === 1 ? "" : "s"}: ${total} designs, ${working - withD} week${working - withD === 1 ? "" : "s"} with none, ${rate}% discussion rate${holidays ? ` (${holidays} holiday${holidays === 1 ? "" : "s"} excluded)` : ""}`,
   ...weeks.slice().reverse().map(w => `  ${short(w.f)}  ${w.holiday ? "—" : w.count}  ${w.holiday ? "Official Holiday" : w.count ? "Discussed" : "No Design Discussed"}`),
   "", `Dashboard: ${DASHBOARD_URL}`].join("\n");
 

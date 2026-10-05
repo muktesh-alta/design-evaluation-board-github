@@ -26,20 +26,23 @@ const state = {
 let charts = { trend: null, donut: null };
 
 /* ---------- range helpers ---------- */
+/** First counted Friday (config.trackingStart); nothing before it is shown or counted. */
+const TRACK_START = (() => { const s = (window.DEB_CONFIG || {}).trackingStart; return DateUtil.isISO(s) ? DateUtil.fridayOnOrAfter(s) : ""; })();
+const clampStart = s => (TRACK_START && (!DateUtil.isISO(s) || s < TRACK_START) ? TRACK_START : s);
 function bounds() {
   const recs = DataService.getDesigns();
   const today = DateUtil.today();
   const lastFri = DateUtil.fridayOnOrBefore(today);
-  if (!recs.length) return { start: DateUtil.addDays(lastFri, -21), end: today };
+  if (!recs.length) return { start: clampStart(DateUtil.addDays(lastFri, -21)), end: today };
   const dates = recs.map(r => r.meetingDate).filter(DateUtil.isISO).sort();
   const lastRec = DateUtil.weekFriday(dates[dates.length - 1]);
-  return { start: DateUtil.addDays(DateUtil.weekFriday(dates[0]), -6), end: lastRec > today ? lastRec : today };
+  return { start: clampStart(DateUtil.addDays(DateUtil.weekFriday(dates[0]), -6)), end: lastRec > today ? lastRec : today };
 }
 function presetRange(id) {
   const b = bounds(), today = DateUtil.today(), lastFri = DateUtil.fridayOnOrBefore(today);
-  if (id === "4w") return { start: DateUtil.addDays(lastFri, -27), end: b.end };
-  if (id === "3m") { const d = DateUtil.parse(today); d.setUTCMonth(d.getUTCMonth() - 3); return { start: DateUtil.fmt(d), end: b.end }; }
-  if (id === "ytd") return { start: today.slice(0, 4) + "-01-01", end: b.end };
+  if (id === "4w") return { start: clampStart(DateUtil.addDays(lastFri, -27)), end: b.end };
+  if (id === "3m") { const d = DateUtil.parse(today); d.setUTCMonth(d.getUTCMonth() - 3); return { start: clampStart(DateUtil.fmt(d)), end: b.end }; }
+  if (id === "ytd") return { start: clampStart(today.slice(0, 4) + "-01-01"), end: b.end };
   return b;
 }
 function resetFilters() {
@@ -50,7 +53,7 @@ function resetFilters() {
 function view() {
   const recs = DataService.getDesigns();
   const rangeOk = DateUtil.isISO(state.range.start) && DateUtil.isISO(state.range.end) && state.range.start <= state.range.end;
-  const weeks = rangeOk ? WeeklyEngine.buildWeeks(recs, state.range) : [];
+  const weeks = rangeOk ? WeeklyEngine.buildWeeks(recs, { start: clampStart(state.range.start), end: state.range.end }) : [];
   const kpi = WeeklyEngine.kpis(weeks);
   const summaryWeeks = state.status === "all" ? weeks : weeks.filter(w => w.status === state.status);
   const allRows = WeeklyEngine.expandRows(weeks);
@@ -70,9 +73,9 @@ function mountSkeleton() {
     <div class="field">
       <span class="lbl" id="rng-lbl">Date range (meeting Friday)</span>
       <div class="range" role="group" aria-labelledby="rng-lbl">
-        <input class="input" type="date" id="fStart" aria-label="Start date">
+        <input class="input" type="date" id="fStart" aria-label="Start date"${TRACK_START ? ` min="${TRACK_START}"` : ""}>
         <span>to</span>
-        <input class="input" type="date" id="fEnd" aria-label="End date">
+        <input class="input" type="date" id="fEnd" aria-label="End date"${TRACK_START ? ` min="${TRACK_START}"` : ""}>
       </div>
     </div>
     <div class="field">
