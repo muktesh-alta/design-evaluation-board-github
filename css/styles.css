@@ -4,7 +4,7 @@
   padding-bottom:env(safe-area-inset-bottom,0px);
   --paper:#F3F6FA; --surface:#FFFFFF; --ink:#15233B; --ink-2:#34445E; --muted:#5E6E86; --line:#D9E1EB; --line-2:#E9EEF4;
   --cobalt:#2A56C6; --cobalt-soft:#E4EBFA; --ochre:#A86B12; --ochre-soft:#F6EAD2; --hatch:#E2C58E;
-  --danger:#B42318; --danger-soft:#FDECEA; --ok:#1F7A4D;
+  --danger:#B42318; --danger-soft:#FDECEA; --ok:#1F7A4D; --hol:#5B5F97; --hol-soft:#ECECF7;
   --panel:#15233B; --panel-2:#22386A; --panel-ink:#F2F5FA; --panel-muted:#A9B6CB;
   --shadow-sm:0 1px 2px rgba(16,32,64,.06);
   --shadow:0 1px 2px rgba(16,32,64,.05), 0 10px 28px -18px rgba(16,32,64,.28);
@@ -15,13 +15,13 @@
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
   --paper:#0E1521; --surface:#152032; --ink:#E7EDF6; --ink-2:#C5D0E0; --muted:#93A3BA; --line:#27364D; --line-2:#1D2A3E;
   --cobalt:#7EA1F2; --cobalt-soft:#1D2D4E; --ochre:#E3AA4E; --ochre-soft:#33280F; --hatch:#7A5A22;
-  --danger:#F2867B; --danger-soft:#3A1C1A; --ok:#5CC592;
+  --danger:#F2867B; --danger-soft:#3A1C1A; --ok:#5CC592; --hol:#AEB2E8; --hol-soft:#25264A;
   --panel:#1E3358; --panel-2:#2C4B80; --panel-ink:#F2F5FA; --panel-muted:#B3C1D8;
   --shadow-sm:none; --shadow:0 10px 28px -18px rgba(0,0,0,.6); color-scheme:dark; } }
 :root[data-theme="dark"]{
   --paper:#0E1521; --surface:#152032; --ink:#E7EDF6; --ink-2:#C5D0E0; --muted:#93A3BA; --line:#27364D; --line-2:#1D2A3E;
   --cobalt:#7EA1F2; --cobalt-soft:#1D2D4E; --ochre:#E3AA4E; --ochre-soft:#33280F; --hatch:#7A5A22;
-  --danger:#F2867B; --danger-soft:#3A1C1A; --ok:#5CC592;
+  --danger:#F2867B; --danger-soft:#3A1C1A; --ok:#5CC592; --hol:#AEB2E8; --hol-soft:#25264A;
   --panel:#1E3358; --panel-2:#2C4B80; --panel-ink:#F2F5FA; --panel-muted:#B3C1D8;
   --shadow-sm:none; --shadow:0 10px 28px -18px rgba(0,0,0,.6); color-scheme:dark; }
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -165,8 +165,15 @@ tr.focus td{background:var(--cobalt-soft)}
 .pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:12px;font-size:12.5px;font-weight:600;white-space:nowrap}
 .pill.d{background:var(--cobalt-soft);color:var(--cobalt)}
 .pill.n{color:var(--ochre);background:var(--surface);border:1px solid var(--hatch)}
+.pill.h{color:var(--hol);background:var(--hol-soft);border:1px dashed var(--hol)}
+tr.holiday td{background:var(--hol-soft);color:var(--ink-2)}
+tr.holiday td:first-child{box-shadow:inset 4px 0 0 var(--hol)}
+.bar .track.off{background:repeating-linear-gradient(90deg,var(--line) 0 4px,transparent 4px 8px)}
+.legend .hol{background:var(--hol-soft);border:1px dashed var(--hol)}
 .latest .pill.d{background:rgba(255,255,255,.14);color:#fff}
 .latest .pill.n{background:transparent;color:var(--hatch);border-color:var(--hatch)}
+.latest .pill.h{background:transparent;color:var(--panel-muted);border-color:var(--panel-muted)}
+.latest .holiday-big{font-size:34px;font-weight:800;letter-spacing:-.02em;color:var(--panel-ink);line-height:1.1}
 .auto{font-size:12px;color:var(--muted);display:block;margin-top:2px}
 .bar{display:flex;align-items:center;gap:10px;min-width:140px}
 .bar .track{flex:1;height:10px;border-radius:5px;background:var(--line-2);overflow:hidden}
@@ -209,7 +216,9 @@ dialog::backdrop{background:rgba(12,20,34,.5);backdrop-filter:blur(2px)}
 .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
 .seg input{position:absolute;opacity:0;pointer-events:none}
 .seg label{padding:10px 12px;text-align:center;cursor:pointer;font-weight:600;font-size:14px;color:var(--ink-2)}
-.seg label:last-of-type{border-left:1px solid var(--line)}
+.seg label+input+label{border-left:1px solid var(--line)}
+.seg.three{grid-template-columns:repeat(3,1fr)}
+.seg input#st-hol:checked+label{background:var(--hol-soft);color:var(--hol)}
 .seg input:checked+label{background:var(--cobalt-soft);color:var(--cobalt)}
 .seg input#st-none:checked+label{background-color:var(--ochre-soft);color:var(--ochre);background-image:repeating-linear-gradient(135deg,var(--hatch) 0 1px,transparent 1px 7px)}
 .seg input:focus-visible+label{outline:2px solid var(--cobalt);outline-offset:-2px}

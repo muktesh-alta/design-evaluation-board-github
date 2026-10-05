@@ -28,7 +28,7 @@ function cleanRecords(rows) {
     for (const f of FIELDS) rec[f] = r[f] === undefined || r[f] === null ? "" : String(r[f]);
     rec.meetingDate = isoDate(r.meetingDate);
     if (!rec.meetingDate) continue;
-    rec.status = rec.status === "No Design Discussed" ? "No Design Discussed" : "Discussed";
+    rec.status = ["No Design Discussed", "Holiday"].includes(rec.status) ? rec.status : "Discussed";
     out.push(rec);
   }
   return out;
@@ -40,8 +40,8 @@ const errors = [];
 if (!r.id || !/^[A-Za-z0-9_-]{3,64}$/.test(String(r.id))) errors.push("record.id is missing or invalid");
 const date = isoDate(r.meetingDate);
 if (!date) errors.push("record.meetingDate must be YYYY-MM-DD");
-const status = r.status === "No Design Discussed" ? "No Design Discussed" : r.status === "Discussed" ? "Discussed" : null;
-if (!status) errors.push("record.status must be 'Discussed' or 'No Design Discussed'");
+const status = ["Discussed", "No Design Discussed", "Holiday"].includes(r.status) ? r.status : null;
+if (!status) errors.push("record.status must be 'Discussed', 'No Design Discussed' or 'Holiday'");
 const deleted = truthy(r.deleted);
 if (!deleted && status === "Discussed") {
   if (!String(r.designName || "").trim()) errors.push("designName is required when status is Discussed");
@@ -57,7 +57,7 @@ return [{ json: {
     day: new Date(date + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" }),
     meetingTime: clip(r.meetingTime || "5:00 PM", 20), status,
     designName: status === "Discussed" ? clip(r.designName, 200) : "",
-    description: status === "Discussed" ? clip(r.description) : "No design discussed",
+    description: status === "Discussed" ? clip(r.description) : status === "Holiday" ? "Official holiday" : "No design discussed",
     owner: status === "Discussed" ? clip(r.owner, 200) : "",
     remarks: clip(r.remarks),
     createdAt: clip(r.createdAt || now, 40), updatedAt: now,

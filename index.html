@@ -65,9 +65,10 @@
     </div>
     <div class="field">
       <span class="lbl" id="st-lbl">Outcome</span>
-      <div class="seg" role="radiogroup" aria-labelledby="st-lbl">
+      <div class="seg three" role="radiogroup" aria-labelledby="st-lbl">
         <input type="radio" name="st" id="st-disc" value="Discussed" checked><label for="st-disc">Design discussed</label>
         <input type="radio" name="st" id="st-none" value="No Design Discussed"><label for="st-none">No design discussed</label>
+        <input type="radio" name="st" id="st-hol" value="Holiday"><label for="st-hol">Official holiday</label>
       </div>
       <p class="err" id="e-status"></p>
     </div>
@@ -146,7 +147,7 @@
       </div>
     </div>
     <div id="noneFields" class="hide dlg-body" style="padding:0">
-      <p class="none-note">This week will be saved with 0 designs and shown as <b>No Design Discussed</b>.</p>
+      <p class="none-note" id="noneNote">This week will be saved with 0 designs and shown as <b>No Design Discussed</b>.</p>
       <div class="field">
         <label for="f-remarks2">Remarks</label>
         <input class="input" id="f-remarks2" autocomplete="off" placeholder="Optional, e.g. meeting cancelled for release">

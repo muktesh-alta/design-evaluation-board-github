@@ -28,7 +28,7 @@ function cleanRecords(rows) {
     for (const f of FIELDS) rec[f] = r[f] === undefined || r[f] === null ? "" : String(r[f]);
     rec.meetingDate = isoDate(r.meetingDate);
     if (!rec.meetingDate) continue;
-    rec.status = rec.status === "No Design Discussed" ? "No Design Discussed" : "Discussed";
+    rec.status = ["No Design Discussed", "Holiday"].includes(rec.status) ? rec.status : "Discussed";
     out.push(rec);
   }
   return out;

@@ -85,6 +85,7 @@ function mountSkeleton() {
         <option value="all">All</option>
         <option value="${STATUS.DISCUSSED}">Discussed</option>
         <option value="${STATUS.NONE}">No Design Discussed</option>
+        <option value="${STATUS.HOLIDAY}">Official Holiday</option>
       </select>
     </div>
     <div class="field grow">
@@ -177,22 +178,23 @@ function renderLatest({ latest }) {
     el.innerHTML = `<h2>Latest Design Evaluation Board</h2><div class="when">No meetings recorded yet<small>Add this Friday's outcome to start the record.</small></div>`;
     return;
   }
-  const none = latest.designCount === 0;
-  el.className = "latest" + (none ? " empty-week" : "");
+  const none = latest.designCount === 0, holiday = latest.holiday;
+  el.className = "latest" + (holiday ? " holiday-week" : none ? " empty-week" : "");
   const names = latest.designs.slice(0, 4).map(d => `<li title="${esc(d.designName)}"><b>${esc(designLabel(d))}</b>${d.owner ? `<span>${esc(d.owner)}</span>` : ""}${makeUpTag(d)}</li>`).join("");
   const more = latest.designs.length > 4 ? `<li>and ${latest.designs.length - 4} more</li>` : "";
   el.innerHTML = `
     <h2>Latest Design Evaluation Board</h2>
     <div class="when">${DateUtil.long(latest.friday)}<small>${MEETING.time}</small></div>
-    <div class="big"><b>${latest.designCount}</b><span>design${latest.designCount === 1 ? "" : "s"} discussed</span></div>
-    <span class="pill ${none ? "n" : "d"}">${none ? "No Design Discussed" : "Design Discussed"}</span>
+    ${holiday ? `<div class="big"><span class="holiday-big">Official holiday</span></div>`
+      : `<div class="big"><b>${latest.designCount}</b><span>design${latest.designCount === 1 ? "" : "s"} discussed</span></div>`}
+    <span class="pill ${holiday ? "h" : none ? "n" : "d"}">${holiday ? "No meeting · not counted" : none ? "No Design Discussed" : "Design Discussed"}</span>
     ${none ? (latest.remarks ? `<ul><li>${esc(latest.remarks)}</li></ul>` : "") : `<ul>${names}${more}</ul>`}`;
 }
 
 function renderKpis({ kpi, rangeOk }) {
   const pct = rangeOk && kpi.totalWeeks ? Math.round(kpi.rate) : 0;
   $("#kpis").innerHTML = `
-    <div class="kpi"><span class="lbl">Total weeks</span><span class="val">${kpi.totalWeeks}</span><span class="sub">Fridays in the selected range</span></div>
+    <div class="kpi"><span class="lbl">Total weeks</span><span class="val">${kpi.totalWeeks}</span><span class="sub">Working Fridays in the range${kpi.holidays ? ` · ${kpi.holidays} holiday${kpi.holidays === 1 ? "" : "s"} excluded` : ""}</span></div>
     <div class="kpi"><span class="lbl">Designs discussed</span><span class="val">${kpi.designsDiscussed}</span><span class="sub">Across ${kpi.weeksWithDesigns} meeting${kpi.weeksWithDesigns === 1 ? "" : "s"}</span></div>
     <div class="kpi none"><span class="lbl">No design discussed</span><span class="val">${kpi.notDiscussed}</span><span class="sub">Weekly slots with zero designs</span></div>
     <div class="kpi"><span class="lbl">Discussion rate</span><span class="val">${kpi.totalWeeks ? pct + "%" : "—"}</span>
@@ -235,7 +237,8 @@ function renderCharts({ weeks, kpi }) {
   if ($("#donutCenter")) $("#donutCenter").innerHTML = `<b>${kpi.totalWeeks ? Math.round(kpi.rate) + "%" : "—"}</b><span>discussion rate</span>`;
   $("#donutRows").innerHTML = `
     <div><span><span class="legend"><span><i class="d"></i>Weeks with designs discussed</span></span></span><b>${kpi.weeksWithDesigns}</b></div>
-    <div><span><span class="legend"><span><i class="hatch"></i>Weeks with no design discussed</span></span></span><b>${kpi.notDiscussed}</b></div>`;
+    <div><span><span class="legend"><span><i class="hatch"></i>Weeks with no design discussed</span></span></span><b>${kpi.notDiscussed}</b></div>${kpi.holidays ? `
+    <div><span><span class="legend"><span><i class="hol"></i>Official holidays (not counted)</span></span></span><b>${kpi.holidays}</b></div>` : ""}`;
   if (typeof Chart === "undefined") {
     if (!$("#trendChart")) return;
     $("#donutChart").closest(".donut-box").remove();
@@ -244,7 +247,7 @@ function renderCharts({ weeks, kpi }) {
   }
   Chart.defaults.font.family = cssVar("--font");
   Chart.defaults.color = cssVar("--muted");
-  const labels = weeks.map(w => DateUtil.tick(w.friday));
+  const labels = weeks.map(w => w.holiday ? [DateUtil.tick(w.friday), "Holiday"] : DateUtil.tick(w.friday));
   const discussed = weeks.map(w => w.designCount);
   const none = weeks.map(w => w.notDiscussedCount);
   const grid = cssVar("--line-2"), cobalt = cssVar("--cobalt"), hatch = hatchPattern(), ochre = cssVar("--ochre");
@@ -302,12 +305,12 @@ function renderSummary({ summaryWeeks, weeks }) {
   let month = "";
   for (const w of list) {
     if (w.monthKey !== month) { month = w.monthKey; html += `<tr class="month"><td colspan="4">${w.monthLabel}</td></tr>`; }
-    const none = !w.designCount;
-    html += `<tr class="clickable ${none ? "nodesign" : ""} ${state.week === w.friday ? "focus" : ""}" data-week="${w.friday}" tabindex="0" aria-label="Show designs for ${DateUtil.short(w.friday)}">
+    const none = !w.designCount && !w.holiday;
+    html += `<tr class="clickable ${none ? "nodesign" : ""}${w.holiday ? " holiday" : ""} ${state.week === w.friday ? "focus" : ""}" data-week="${w.friday}" tabindex="0" aria-label="Show designs for ${DateUtil.short(w.friday)}">
       <td class="nowrap">${w.weekLabel}</td>
       <td class="nowrap">${DateUtil.short(w.friday)}</td>
-      <td><div class="bar"><span class="track ${none ? "hatch" : ""}"><i style="width:${(w.designCount / max) * 100}%"></i></span><b>${w.designCount}</b></div></td>
-      <td>${none ? `<span class="pill n">No Design Discussed</span>` : `<span class="pill d">Discussed</span>`}${none && !w.explicitNone ? `<span class="auto">Added automatically</span>` : ""}${makeUpDays(w)}</td></tr>`;
+      <td><div class="bar"><span class="track ${none ? "hatch" : ""}${w.holiday ? " off" : ""}"><i style="width:${(w.designCount / max) * 100}%"></i></span><b>${w.designCount}</b></div></td>
+      <td>${w.holiday ? `<span class="pill h">Official Holiday</span><span class="auto">Not counted${w.remarks ? ` · ${esc(w.remarks)}` : ""}</span>` : none ? `<span class="pill n">No Design Discussed</span>` : `<span class="pill d">Discussed</span>`}${none && !w.explicitNone ? `<span class="auto">Added automatically</span>` : ""}${makeUpDays(w)}</td></tr>`;
   }
   t.innerHTML = html + "</tbody>";
 }
@@ -337,16 +340,16 @@ function renderDetails(v) {
     </div></td></tr></tbody>`;
   } else {
     t.innerHTML = `<thead><tr>${head}</tr></thead><tbody>` + pg.items.map(r => {
-      const none = r.status === STATUS.NONE;
+      const none = r.status === STATUS.NONE, hol = r.status === STATUS.HOLIDAY;
       const acts = state.readOnly ? "" : r.synthetic
         ? `<button class="icon-btn" data-act="addfor" data-date="${r.friday}" aria-label="Add a design for ${DateUtil.short(r.friday)}" title="Add a design for this week">${ICON.plus}</button>`
         : `<button class="icon-btn" data-act="edit" data-id="${esc(r.id)}" aria-label="Edit record" title="Edit">${ICON.edit}</button>
            <button class="icon-btn" data-act="del" data-id="${esc(r.id)}" aria-label="Delete record" title="Delete">${ICON.del}</button>`;
-      return `<tr class="${none ? "nodesign" : ""}">
+      return `<tr class="${none ? "nodesign" : hol ? "holiday" : ""}">
         <td class="nowrap">${r.weekLabel}<span class="auto">${r.monthLabel}</span></td>
         <td class="nowrap">${DateUtil.short(r.meetingDate)}${r.meetingDate !== r.friday ? `<span class="auto">${DateUtil.dayName(r.meetingDate)} (make-up)</span>` : ""}</td>
-        <td>${none ? `<span class="pill n">No Design Discussed</span>` : `<span class="pill d">Discussed</span>`}</td>
-        <td>${none ? `<span class="muted">—</span>` : `<b>${esc(r.designName)}</b>`}</td>
+        <td>${hol ? `<span class="pill h">Official Holiday</span>` : none ? `<span class="pill n">No Design Discussed</span>` : `<span class="pill d">Discussed</span>`}</td>
+        <td>${none || hol ? `<span class="muted">—</span>` : `<b>${esc(r.designName)}</b>`}</td>
         <td class="desc">${esc(r.description)}${r.synthetic ? `<span class="auto">No record entered for this Friday</span>` : ""}</td>
         <td class="nowrap">${esc(r.owner) || `<span class="muted">—</span>`}</td>
         <td class="desc" style="min-width:140px">${esc(r.remarks) || `<span class="muted">—</span>`}</td>
@@ -410,8 +413,12 @@ const dlg = { el: null, editing: null };
 function statusValue() { return document.querySelector('input[name="st"]:checked').value; }
 function heldValue() { return document.querySelector('input[name="held"]:checked').value; }
 function syncStatusFields() {
-  const none = statusValue() === STATUS.NONE;
-  if (none) $("#held-fri").checked = true;          // "no design" is always recorded against a Friday
+  const none = statusValue() !== STATUS.DISCUSSED, holiday = statusValue() === STATUS.HOLIDAY;
+  if (none) $("#held-fri").checked = true;          // "no design" and holidays are always recorded against a Friday
+  $("#noneNote").innerHTML = holiday
+    ? "This Friday will be marked as an <b>official holiday</b>. The week is shown as a holiday and left out of every count and percentage."
+    : "This week will be saved with 0 designs and shown as <b>No Design Discussed</b>.";
+  $("#f-remarks2").placeholder = holiday ? "Holiday name, e.g. Dussehra" : "Optional, e.g. meeting cancelled for release";
   $("#heldField").classList.toggle("hide", none);
   $("#designFields").classList.toggle("hide", none);
   $("#noneFields").classList.toggle("hide", !none);
@@ -444,7 +451,7 @@ function openRecord(rec = null, preset = {}) {
   $("#dlgTitle").textContent = rec ? "Edit record" : "Add weekly record";
   $("#dlgSub").textContent = rec ? `Meeting on ${DateUtil.long(rec.meetingDate)}` : "Record a design from a Friday meeting, or mark a week with no design.";
   $("#f-date").value = src.meetingDate || "";
-  $(src.status === STATUS.NONE ? "#st-none" : "#st-disc").checked = true;
+  $(src.status === STATUS.HOLIDAY ? "#st-hol" : src.status === STATUS.NONE ? "#st-none" : "#st-disc").checked = true;
   $(DateUtil.isISO(src.meetingDate) && DateUtil.dow(src.meetingDate) !== MEETING.weekday ? "#held-other" : "#held-fri").checked = true;
   $("#f-name").value = src.designName || ""; $("#f-desc").value = rec && rec.status === STATUS.DISCUSSED ? rec.description || "" : "";
   $("#f-owner").value = src.owner || ""; $("#f-remarks").value = src.remarks || ""; $("#f-remarks2").value = src.remarks || "";
@@ -455,7 +462,7 @@ function openRecord(rec = null, preset = {}) {
   setTimeout(() => (rec ? $("#f-name") : $("#f-date")).focus(), 30);
 }
 function readForm() {
-  const none = statusValue() === STATUS.NONE;
+  const none = statusValue() !== STATUS.DISCUSSED;
   return { meetingDate: $("#f-date").value, status: statusValue(), heldOn: heldValue(), designName: $("#f-name").value, description: $("#f-desc").value,
     owner: $("#f-owner").value, remarks: none ? $("#f-remarks2").value : $("#f-remarks").value,
     ...Object.fromEntries(DETAIL_FIELDS.map(([k]) => [k, $("#f-" + k).value])) };
@@ -482,7 +489,7 @@ async function saveRecord(another) {
     }
     const when = DateUtil.short(DateUtil.weekFriday(rec.meetingDate));
     const makeUp = rec.day !== MEETING.day ? ` (make-up on ${rec.day})` : "";
-    toast(dlg.editing ? "Changes saved." : rec.status === STATUS.NONE ? `${when} saved as no design discussed.` : `"${rec.designName}" added to the ${when} week${makeUp}.` + (replaced ? " The no design marker for that week was removed." : ""));
+    toast(dlg.editing ? "Changes saved." : rec.status === STATUS.HOLIDAY ? `${when} marked as an official holiday. It won't count toward any totals.` : rec.status === STATUS.NONE ? `${when} saved as no design discussed.` : `"${rec.designName}" added to the ${when} week${makeUp}.` + (replaced ? " The no design marker for that week was removed." : ""));
     ensureInRange(rec.meetingDate);
     if (another) {
       $("#f-name").value = ""; $("#f-desc").value = ""; $("#f-remarks").value = ""; $("#f-name").focus();
@@ -517,7 +524,9 @@ let pendingDelete = null;
 function confirmDelete(id) {
   const r = DataService.getDesigns().find(x => x.id === id); if (!r) return;
   pendingDelete = id;
-  $("#cfText").textContent = r.status === STATUS.NONE
+  $("#cfText").textContent = r.status === STATUS.HOLIDAY
+    ? `The official holiday for ${DateUtil.short(r.meetingDate)} will be removed. The week will count again, as No Design Discussed unless designs are added.`
+    : r.status === STATUS.NONE
     ? `The no design marker for ${DateUtil.short(r.meetingDate)} will be removed. The week will still appear as No Design Discussed.`
     : `"${r.designName}" from the ${DateUtil.short(r.meetingDate)} meeting will be permanently removed.`;
   $("#confirmDlg").showModal();

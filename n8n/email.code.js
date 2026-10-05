@@ -31,7 +31,7 @@ function cleanRecords(rows) {
     for (const f of FIELDS) rec[f] = r[f] === undefined || r[f] === null ? "" : String(r[f]);
     rec.meetingDate = isoDate(r.meetingDate);
     if (!rec.meetingDate) continue;
-    rec.status = rec.status === "No Design Discussed" ? "No Design Discussed" : "Discussed";
+    rec.status = ["No Design Discussed", "Holiday"].includes(rec.status) ? rec.status : "Discussed";
     out.push(rec);
   }
   return out;
@@ -62,16 +62,20 @@ for (let k = WEEKS_IN_SUMMARY - 1; k >= 0; k--) {
   const f = add(thisFri, -7 * k);
   const designs = (byFri[f] || []).filter(r => r.status === "Discussed");
   const marker = (byFri[f] || []).find(r => r.status === "No Design Discussed");
-  weeks.push({ f, designs, count: designs.length, remarks: designs.length ? "" : (marker?.remarks || ""), recorded: !!(byFri[f] || []).length });
+  const hol = (byFri[f] || []).find(r => r.status === "Holiday");
+  const holiday = !designs.length && !!hol;   // official holiday: shown, but left out of every count and rate
+  weeks.push({ f, designs, count: designs.length, holiday, remarks: designs.length ? "" : ((holiday ? hol : marker)?.remarks || ""), recorded: !!(byFri[f] || []).length });
 }
 const latest = weeks[weeks.length - 1];
+const working = weeks.filter(w => !w.holiday).length;
+const holidays = weeks.length - working;
 const total = weeks.reduce((s, w) => s + w.count, 0);
 const withD = weeks.filter(w => w.count).length;
-const rate = Math.round((withD / weeks.length) * 100);
+const rate = working ? Math.round((withD / working) * 100) : 0;
 
 // ---------- email template (tables + inline styles for Gmail / Outlook) ----------
 const C = { paper: "#F3F6FA", surface: "#FFFFFF", ink: "#15233B", ink2: "#34445E", muted: "#5E6E86", line: "#D9E1EB", line2: "#E9EEF4",
-  navy: "#15233B", navy2: "#22386A", navyMuted: "#A9B6CB", blue: "#2A56C6", blueSoft: "#E4EBFA", ochre: "#A86B12", ochreSoft: "#F6EAD2", hatch: "#E2C58E" };
+  hol: "#5B5F97", holSoft: "#ECECF7", navy: "#15233B", navy2: "#22386A", navyMuted: "#A9B6CB", blue: "#2A56C6", blueSoft: "#E4EBFA", ochre: "#A86B12", ochreSoft: "#F6EAD2", hatch: "#E2C58E" };
 const FONT = "'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const TICKET = /\b[A-Z]{2,}-?\d{3,}\b/;
 const idOf = d => { for (const s of [d.enhancementId, d.jiraId, d.description, d.designName]) { const m = String(s || "").match(TICKET); if (m) return m[0]; } return ""; };
@@ -108,7 +112,10 @@ const designCard = d => {
     </table></td></tr>`;
 };
 
-const latestBlock = latest.count
+const latestBlock = latest.holiday
+  ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px dashed ${C.hol};border-radius:10px;background:${C.holSoft}"><tr><td style="padding:16px 18px;font-size:14px;line-height:1.55;color:${C.ink2}">
+       <b style="color:${C.hol};font-size:15px">Official holiday${latest.remarks ? ` · ${esc(latest.remarks)}` : ""}</b><br>No board meeting this Friday. This week is not counted in the totals or the discussion rate.</td></tr></table>`
+  : latest.count
   ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">${latest.designs.map(designCard).join("")}</table>`
   : `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px dashed ${C.hatch};border-radius:10px;background:${C.ochreSoft}"><tr><td style="padding:16px 18px;font-size:14px;line-height:1.55;color:${C.ink2}">
        <b style="color:${C.ochre};font-size:15px">No design discussed</b><br>${latest.recorded
@@ -125,25 +132,32 @@ const summaryRows = weeks.slice().reverse().map(w => {
   const pct = Math.round((w.count / maxCount) * 100);
   const makeUps = [...new Set(w.designs.filter(d => d.meetingDate !== w.f).map(d => DAY[dow(d.meetingDate)]))];
   const cell = `height:8px;border-radius:4px;font-size:0;line-height:0`;
-  const bar = w.count
+  const bar = w.holiday
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="${cell};background:${C.holSoft};border:1px dashed ${C.hol}">&nbsp;</td></tr></table>`
+    : w.count
     ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td width="${pct}%" style="${cell};background:${C.blue}">&nbsp;</td>${pct < 100 ? `<td style="${cell};background:${C.line2}">&nbsp;</td>` : ""}</tr></table>`
     : `<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="${cell};background:${C.ochreSoft};border:1px solid ${C.hatch}">&nbsp;</td></tr></table>`;
   const td = `padding:11px 10px;border-bottom:1px solid ${C.line2}`;
-  return `<tr>
-    <td style="${td};font-size:14px;white-space:nowrap;color:${C.ink}"><b style="font-weight:600">${short(w.f)}</b>${makeUps.length ? `<div style="font-size:11.5px;color:${C.ochre};margin-top:2px">Make-up: ${makeUps.join(", ")}</div>` : ""}</td>
+  const holPill = `<span style="display:inline-block;padding:2px 9px;border-radius:12px;border:1px dashed ${C.hol};background:${C.holSoft};color:${C.hol};font-size:12px;font-weight:700;white-space:nowrap">Official Holiday</span>`;
+  return `<tr${w.holiday ? ` style="background:${C.holSoft}"` : ""}>
+    <td style="${td};font-size:14px;white-space:nowrap;color:${C.ink}"><b style="font-weight:600">${short(w.f)}</b>${w.holiday ? `<div style="font-size:11.5px;color:${C.hol};margin-top:2px">Not counted${w.remarks ? " · " + esc(w.remarks) : ""}</div>` : ""}${makeUps.length ? `<div style="font-size:11.5px;color:${C.ochre};margin-top:2px">Make-up: ${makeUps.join(", ")}</div>` : ""}</td>
     <td width="40%" style="${td};vertical-align:middle">${bar}</td>
-    <td align="right" style="${td};font-size:15px;font-weight:800;color:${w.count ? C.ink : C.ochre}">${w.count}</td>
-    <td align="right" style="${td}">${pill(w.count)}</td></tr>`;
+    <td align="right" style="${td};font-size:15px;font-weight:800;color:${w.holiday ? C.hol : w.count ? C.ink : C.ochre}">${w.holiday ? "—" : w.count}</td>
+    <td align="right" style="${td}">${w.holiday ? holPill : pill(w.count)}</td></tr>`;
 }).join("");
 
 // Meeting week runs Friday → Thursday, e.g. "25 Sep – 01 Oct 2026"
 const weekRange = f => { const e = add(f, 6), [fd, fm, fy] = short(f).split("-"), [ed, em, ey] = short(e).split("-");
   return fy === ey ? `${fd} ${fm} – ${ed} ${em} ${ey}` : `${fd} ${fm} ${fy} – ${ed} ${em} ${ey}`; };
 const weekLabel = `Week ${weekRange(latest.f)} (Fri–Thu)`;
-const subject = latest.count
+const subject = latest.holiday
+  ? `Design Evaluation Board · ${weekLabel} · Official holiday${latest.remarks ? " (" + latest.remarks + ")" : ""}`
+  : latest.count
   ? `Design Evaluation Board · ${weekLabel} · ${latest.count} design${latest.count === 1 ? "" : "s"} discussed`
   : `Design Evaluation Board · ${weekLabel} · No design discussed`;
-const preheader = latest.count
+const preheader = latest.holiday
+  ? "Official holiday: no board meeting this Friday, not counted in the totals."
+  : latest.count
   ? latest.designs.slice(0, 3).map(d => idOf(d) || d.designName).join(", ") + (latest.count > 3 ? ` and ${latest.count - 3} more` : "")
   : "No design was discussed this Friday.";
 
@@ -163,10 +177,11 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
     <div style="font-size:11px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:${C.navyMuted}">Latest board meeting</div>
     <div style="font-size:24px;font-weight:700;color:#fff;margin-top:8px;line-height:1.25">${long(latest.f)}</div>
     <div style="font-size:14px;color:${C.navyMuted};margin-top:2px">5:00 PM &nbsp;·&nbsp; ${weekLabel}</div>
+    ${latest.holiday ? `<div style="margin-top:16px;font-size:30px;font-weight:800;color:#fff">Official holiday</div><div style="font-size:14px;color:${C.navyMuted};margin-top:4px">${latest.remarks ? esc(latest.remarks) + " · " : ""}not counted in the totals</div>` : `
     <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:16px"><tr>
       <td style="font-size:52px;font-weight:800;line-height:1;color:${latest.count ? "#fff" : C.hatch};letter-spacing:-1.5px">${latest.count}</td>
       <td style="padding-left:12px;vertical-align:bottom;padding-bottom:6px;font-size:15px;color:${C.navyMuted}">design${latest.count === 1 ? "" : "s"} discussed</td>
-    </tr></table>
+    </tr></table>`}
   </td></tr>
 
   <tr><td style="background:${C.surface};border:1px solid ${C.line};border-top:0;border-radius:0 0 14px 14px;padding:24px 24px 8px">
@@ -176,7 +191,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
     <div style="height:12px;line-height:12px">&nbsp;</div>
     ${eyebrow(`Last ${WEEKS_IN_SUMMARY} Fridays`)}
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
-      ${kpi("Weeks", weeks.length, C.blue)}${kpi("Designs", total, C.blue)}${kpi("No design", weeks.length - withD, C.ochre, C.ochre)}${kpi("Rate", rate + "%", C.blue)}
+      ${kpi(holidays ? `Weeks (${holidays} hol.)` : "Weeks", working, C.blue)}${kpi("Designs", total, C.blue)}${kpi("No design", working - withD, C.ochre, C.ochre)}${kpi("Rate", rate + "%", C.blue)}
     </tr></table>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:14px;border-collapse:collapse">${summaryRows}</table>
 
@@ -186,16 +201,16 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
   </td></tr>
 
   <tr><td align="center" style="padding:16px 12px 0;font-size:12px;line-height:1.6;color:${C.muted}">
-    Sent automatically every Friday at 6:30 PM IST, after the 5:00 PM board.<br>Make-up sessions held Monday to Thursday count toward the Friday before them.
+    Sent automatically every Friday at 6:30 PM IST, after the 5:00 PM board.<br>Make-up sessions held Monday to Thursday count toward the Friday before them. Official holidays are not counted.
   </td></tr>
 </table></td></tr></table></body></html>`;
 
 const text = [subject, "",
   ...(latest.count
     ? latest.designs.map(d => `- ${idOf(d) ? idOf(d) + " " : ""}${d.designName}${d.owner ? ` (${d.owner})` : ""}${madeUp(d)}${d.description && d.description !== d.designName ? `\n  ${d.description}` : ""}`)
-    : ["No design discussed."]),
-  "", `Last ${WEEKS_IN_SUMMARY} Fridays: ${total} designs, ${weeks.length - withD} weeks with none, ${rate}% discussion rate`,
-  ...weeks.slice().reverse().map(w => `  ${short(w.f)}  ${w.count}  ${w.count ? "Discussed" : "No Design Discussed"}`),
+    : [latest.holiday ? `Official holiday${latest.remarks ? " (" + latest.remarks + ")" : ""}. Not counted.` : "No design discussed."]),
+  "", `Last ${WEEKS_IN_SUMMARY} Fridays: ${total} designs, ${working - withD} weeks with none, ${rate}% discussion rate${holidays ? ` (${holidays} holiday${holidays === 1 ? "" : "s"} excluded)` : ""}`,
+  ...weeks.slice().reverse().map(w => `  ${short(w.f)}  ${w.holiday ? "—" : w.count}  ${w.holiday ? "Official Holiday" : w.count ? "Discussed" : "No Design Discussed"}`),
   "", `Dashboard: ${DASHBOARD_URL}`].join("\n");
 
 return [{ json: { subject, html, text, meetingDate: latest.f, designCount: latest.count } }];

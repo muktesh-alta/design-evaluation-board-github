@@ -1,7 +1,7 @@
 /* =====================================================================
    BUSINESS LOGIC — no DOM access. Safe to unit-test or move server-side.
    ===================================================================== */
-const STATUS = Object.freeze({ DISCUSSED: "Discussed", NONE: "No Design Discussed" });
+const STATUS = Object.freeze({ DISCUSSED: "Discussed", NONE: "No Design Discussed", HOLIDAY: "Holiday" });
 const MEETING = Object.freeze({ day: "Friday", time: "5:00 PM", weekday: 5 });
 /** Optional enhancement details stored with each design: [record key = sheet column, label]. */
 const ENHANCEMENT_FIELDS = Object.freeze([
@@ -69,6 +69,9 @@ const WeeklyEngine = {
       const designs = recs.filter(r => r.status === STATUS.DISCUSSED)
         .sort((a, b) => (a.designName || "").localeCompare(b.designName || ""));
       const placeholders = recs.filter(r => r.status === STATUS.NONE);
+      const holidayRec = recs.find(r => r.status === STATUS.HOLIDAY);
+      // An official holiday with no designs is left out of every count and rate.
+      const holiday = !designs.length && !!holidayRec;
       weeks.push({
         friday: f,
         weekOfMonth: DateUtil.weekOfMonth(f),
@@ -77,22 +80,25 @@ const WeeklyEngine = {
         monthLabel: DateUtil.monthLabel(f),
         designs, placeholders,
         designCount: designs.length,
-        notDiscussedCount: designs.length ? 0 : 1,
-        status: designs.length ? STATUS.DISCUSSED : STATUS.NONE,
-        explicitNone: !designs.length && placeholders.length > 0,
-        remarks: (!designs.length && placeholders[0]?.remarks) || ""
+        notDiscussedCount: designs.length || holiday ? 0 : 1,
+        holiday, holidayRec: holiday ? holidayRec : null,
+        status: designs.length ? STATUS.DISCUSSED : holiday ? STATUS.HOLIDAY : STATUS.NONE,
+        explicitNone: !designs.length && !holiday && placeholders.length > 0,
+        remarks: (!designs.length && (holiday ? holidayRec.remarks : placeholders[0]?.remarks)) || ""
       });
     }
     return weeks;
   },
 
+  /** Holiday weeks are excluded: totalWeeks counts working Fridays only. */
   kpis(weeks) {
-    const totalWeeks = weeks.length;
+    const holidays = weeks.filter(w => w.holiday).length;
+    const totalWeeks = weeks.length - holidays;
     const designsDiscussed = weeks.reduce((s, w) => s + w.designCount, 0);
     const weeksWithDesigns = weeks.filter(w => w.designCount > 0).length;
     const notDiscussed = totalWeeks - weeksWithDesigns;
     const rate = totalWeeks ? (weeksWithDesigns / totalWeeks) * 100 : 0;
-    return { totalWeeks, designsDiscussed, weeksWithDesigns, notDiscussed, rate };
+    return { totalWeeks, designsDiscussed, weeksWithDesigns, notDiscussed, rate, holidays };
   },
 
   /** One row per design; exactly one row per empty week. */
@@ -101,6 +107,8 @@ const WeeklyEngine = {
     for (const w of weeks) {
       if (w.designs.length) {
         for (const d of w.designs) rows.push(WeeklyEngine._row(w, d, false));
+      } else if (w.holiday) {
+        rows.push(WeeklyEngine._row(w, w.holidayRec, false));
       } else {
         const p = w.placeholders[0];
         rows.push(WeeklyEngine._row(w, p || {
@@ -114,8 +122,8 @@ const WeeklyEngine = {
   _row(w, r, synthetic) {
     return {
       id: r.id, synthetic, friday: w.friday, weekLabel: w.weekLabel, monthLabel: w.monthLabel,
-      meetingDate: r.meetingDate, status: r.status === STATUS.DISCUSSED ? STATUS.DISCUSSED : STATUS.NONE,
-      designName: r.designName || "", description: r.description || (r.status === STATUS.NONE ? "No design discussed" : ""),
+      meetingDate: r.meetingDate, status: [STATUS.DISCUSSED, STATUS.HOLIDAY].includes(r.status) ? r.status : STATUS.NONE,
+      designName: r.designName || "", description: r.description || (r.status === STATUS.NONE ? "No design discussed" : r.status === STATUS.HOLIDAY ? "Official holiday" : ""),
       owner: r.owner || "", remarks: r.remarks || "", ...enhancementValues(r)
     };
   },
@@ -173,7 +181,7 @@ const Validator = {
     if (!date) errors.meetingDate = "Choose the meeting date.";
     else if (!DateUtil.isISO(date)) errors.meetingDate = "Enter a valid date.";
     else if (DateUtil.dow(date) !== MEETING.weekday) {
-      if (input.status === STATUS.NONE || input.heldOn !== "other")
+      if (input.status !== STATUS.DISCUSSED || input.heldOn !== "other")
         errors.meetingDate = `${DateUtil.dayName(date)} isn't a Friday. Pick the Friday, or choose "Another day" for a make-up session.`;
       else warnings.meetingDate = Validator.makeUpNote(date);
     }
@@ -181,7 +189,7 @@ const Validator = {
     if (input.status === STATUS.DISCUSSED) {
       if (!(input.designName || "").trim()) errors.designName = "Design name is required when a design was discussed.";
       if (!(input.description || "").trim()) errors.description = "Add a short description of the design.";
-    } else if (input.status !== STATUS.NONE) {
+    } else if (input.status !== STATUS.NONE && input.status !== STATUS.HOLIDAY) {
       errors.status = "Choose whether a design was discussed.";
     }
 
@@ -189,9 +197,12 @@ const Validator = {
       const f = DateUtil.weekFriday(date);
       const sameWeek = records.filter(r => r.id !== editingId && DateUtil.isISO(r.meetingDate) && DateUtil.weekFriday(r.meetingDate) === f);
       const designs = sameWeek.filter(r => r.status === STATUS.DISCUSSED);
-      if (input.status === STATUS.NONE) {
-        if (designs.length) errors.status = `The ${DateUtil.short(f)} meeting already has ${designs.length} design${designs.length > 1 ? "s" : ""}. Delete ${designs.length > 1 ? "them" : "it"} first to mark the week as no design discussed.`;
-        else if (sameWeek.some(r => r.status === STATUS.NONE)) errors.status = `The ${DateUtil.short(f)} meeting is already marked as no design discussed.`;
+      const holidayMarked = sameWeek.some(r => r.status === STATUS.HOLIDAY), noneMarked = sameWeek.some(r => r.status === STATUS.NONE);
+      if (input.status === STATUS.NONE || input.status === STATUS.HOLIDAY) {
+        const as = input.status === STATUS.HOLIDAY ? "an official holiday" : "no design discussed";
+        if (designs.length) errors.status = `The ${DateUtil.short(f)} meeting already has ${designs.length} design${designs.length > 1 ? "s" : ""}. Delete ${designs.length > 1 ? "them" : "it"} first to mark the week as ${as}.`;
+        else if (holidayMarked) errors.status = `The ${DateUtil.short(f)} week is already marked as an official holiday.`;
+        else if (noneMarked) errors.status = `The ${DateUtil.short(f)} meeting is already marked as no design discussed${input.status === STATUS.HOLIDAY ? ". Delete that record first to mark the week as a holiday" : ""}.`;
       } else if (input.status === STATUS.DISCUSSED && (input.designName || "").trim()) {
         const n = input.designName.trim().toLowerCase();
         if (designs.some(r => (r.designName || "").trim().toLowerCase() === n))
@@ -208,14 +219,14 @@ const Validator = {
 
   normalize(input) {
     const meetingDate = input.meetingDate.trim();
-    const none = input.status === STATUS.NONE;
+    const none = input.status !== STATUS.DISCUSSED, holiday = input.status === STATUS.HOLIDAY;
     return {
       meetingDate,
       day: DateUtil.dayName(meetingDate),
       meetingTime: MEETING.time,
-      status: none ? STATUS.NONE : STATUS.DISCUSSED,
+      status: holiday ? STATUS.HOLIDAY : none ? STATUS.NONE : STATUS.DISCUSSED,
       designName: none ? "" : input.designName.trim(),
-      description: none ? "No design discussed" : input.description.trim(),
+      description: holiday ? "Official holiday" : none ? "No design discussed" : input.description.trim(),
       owner: none ? "" : (input.owner || "").trim(),
       remarks: (input.remarks || "").trim(),
       ...enhancementValues(input, none)
