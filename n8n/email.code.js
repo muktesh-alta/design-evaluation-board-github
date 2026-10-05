@@ -220,4 +220,10 @@ const text = [subject, "",
   ...weeks.slice().reverse().map(w => `  ${short(w.f)}  ${w.holiday ? "—" : w.count}  ${w.holiday ? "Official Holiday" : w.count ? "Discussed" : "No Design Discussed"}`),
   "", `Dashboard: ${DASHBOARD_URL}`].join("\n");
 
-return [{ json: { subject, html, text, meetingDate: latest.f, designCount: latest.count } }];
+// Some mail clients (e.g. Zimbra) read the message as Windows-1252, turning "·" into "Â·".
+// Send pure ASCII: HTML gets numeric entities; subject and plain text get ASCII look-alikes.
+const ASCII = { "·": "|", "–": "-", "—": "-", "→": "->", "‘": "'", "’": "'", "“": '"', "”": '"', "…": "...", "÷": "/", "•": "*" };
+const toAscii = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\x00-\x7F]/g, c => ASCII[c] ?? "");
+const htmlSafe = html.replace(/[^\x00-\x7F]/g, c => `&#${c.codePointAt(0)};`);
+
+return [{ json: { subject: toAscii(subject), html: htmlSafe, text: toAscii(text), meetingDate: latest.f, designCount: latest.count } }];
