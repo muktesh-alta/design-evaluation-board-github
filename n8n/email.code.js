@@ -45,7 +45,7 @@ const P = d => new Date(d + "T00:00:00Z");
 const add = (d, n) => { const x = P(d); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 const dow = d => P(d).getUTCDay();
 const fridayOnOrBefore = d => add(d, -((dow(d) - 5 + 7) % 7));
-// Week runs Friday → Thursday: a make-up session on Mon–Thu counts toward the Friday before it.
+// Week runs Friday \u2192 Thursday: a make-up session on Mon\u2013Thu counts toward the Friday before it.
 const weekFriday = fridayOnOrBefore;
 const short = d => { const x = P(d); return `${String(x.getUTCDate()).padStart(2, "0")}-${MON[x.getUTCMonth()]}-${x.getUTCFullYear()}`; };
 const long = d => `${DAY[dow(d)]}, ${short(d)}`;
@@ -95,7 +95,7 @@ const eyebrow = t => `<div style="font-size:11px;font-weight:700;letter-spacing:
 const designCard = d => {
   const id = idOf(d);
   const makeUp = dow(d.meetingDate) !== 5
-    ? `<td align="right" style="vertical-align:top;padding-left:8px">${chip(nd("Make-up · " + DAY[dow(d.meetingDate)] + " " + short(d.meetingDate).slice(0, 6)), C.ochreSoft, C.ochre, true)}</td>` : "";
+    ? `<td align="right" style="vertical-align:top;padding-left:8px">${chip(nd("Make-up \u00b7 " + DAY[dow(d.meetingDate)] + " " + short(d.meetingDate).slice(0, 6)), C.ochreSoft, C.ochre, true)}</td>` : "";
   const meta = [["Owner", d.owner], ["Component", d.component], ["Client", d.clientName], ["Sprint", d.sprint], ["In sprint backlog", d.scopedInSprint]]
     .filter(([, v]) => v)
     .map(([k, v]) => `<span style="white-space:nowrap">${String(v).toLowerCase().includes(k.toLowerCase()) ? "" : `<span style="color:${C.muted}">${k}</span>&nbsp;`}<b style="color:${C.ink2};font-weight:600">${esc(v)}</b></span>`)
@@ -121,7 +121,7 @@ const designCard = d => {
 
 const latestBlock = latest.holiday
   ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px dashed ${C.hol};border-radius:10px;background:${C.holSoft}"><tr><td style="padding:16px 18px;font-size:14px;line-height:1.55;color:${C.ink2}">
-       <b style="color:${C.hol};font-size:15px">Official holiday${holName(latest.remarks) ? ` · ${esc(holName(latest.remarks))}` : ""}</b><br>No board meeting ${nd("this Friday")}. This week is not counted in the totals or the discussion rate.</td></tr></table>`
+       <b style="color:${C.hol};font-size:15px">Official holiday${holName(latest.remarks) ? ` \u00b7 ${esc(holName(latest.remarks))}` : ""}</b><br>No board meeting ${nd("this Friday")}. This week is not counted in the totals or the discussion rate.</td></tr></table>`
   : latest.count
   ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0">${latest.designs.map(designCard).join("")}</table>`
   : `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px dashed ${C.hatch};border-radius:10px;background:${C.ochreSoft}"><tr><td style="padding:16px 18px;font-size:14px;line-height:1.55;color:${C.ink2}">
@@ -147,21 +147,21 @@ const summaryRows = weeks.slice().reverse().map(w => {
   const td = `padding:11px 10px;border-bottom:1px solid ${C.line2}`;
   const holPill = `<span style="display:inline-block;padding:2px 9px;border-radius:12px;border:1px dashed ${C.hol};background:${C.holSoft};color:${C.hol};font-size:12px;font-weight:700;white-space:nowrap">Official Holiday</span>`;
   return `<tr${w.holiday ? ` style="background:${C.holSoft}"` : ""}>
-    <td style="${td};font-size:14px;white-space:nowrap;color:${C.ink}"><b style="font-weight:600">${nd(short(w.f))}</b>${w.holiday ? `<div style="font-size:11.5px;color:${C.hol};margin-top:2px">Not counted${holName(w.remarks) ? " · " + esc(holName(w.remarks)) : ""}</div>` : ""}${makeUps.length ? `<div style="font-size:11.5px;color:${C.ochre};margin-top:2px">${nd("Make-up: " + makeUps.join(", "))}</div>` : ""}</td>
+    <td style="${td};font-size:14px;white-space:nowrap;color:${C.ink}"><b style="font-weight:600">${nd(short(w.f))}</b>${w.holiday ? `<div style="font-size:11.5px;color:${C.hol};margin-top:2px">Not counted${holName(w.remarks) ? " \u00b7 " + esc(holName(w.remarks)) : ""}</div>` : ""}${makeUps.length ? `<div style="font-size:11.5px;color:${C.ochre};margin-top:2px">${nd("Make-up: " + makeUps.join(", "))}</div>` : ""}</td>
     <td width="40%" style="${td};vertical-align:middle">${bar}</td>
-    <td align="right" style="${td};font-size:15px;font-weight:800;color:${w.holiday ? C.hol : w.count ? C.ink : C.ochre}">${w.holiday ? "—" : w.count}</td>
+    <td align="right" style="${td};font-size:15px;font-weight:800;color:${w.holiday ? C.hol : w.count ? C.ink : C.ochre}">${w.holiday ? "\u2014" : w.count}</td>
     <td align="right" style="${td}">${w.holiday ? holPill : pill(w.count)}</td></tr>`;
 }).join("");
 
-// Meeting week runs Friday → Thursday, e.g. "25 Sep – 01 Oct 2026"
+// Meeting week runs Friday \u2192 Thursday, e.g. "25 Sep \u2013 01 Oct 2026"
 const weekRange = f => { const e = add(f, 6), [fd, fm, fy] = short(f).split("-"), [ed, em, ey] = short(e).split("-");
-  return fy === ey ? `${fd} ${fm} – ${ed} ${em} ${ey}` : `${fd} ${fm} ${fy} – ${ed} ${em} ${ey}`; };
-const weekLabel = `Week ${weekRange(latest.f)} (Fri–Thu)`;
+  return fy === ey ? `${fd} ${fm} \u2013 ${ed} ${em} ${ey}` : `${fd} ${fm} ${fy} \u2013 ${ed} ${em} ${ey}`; };
+const weekLabel = `Week ${weekRange(latest.f)} (Fri\u2013Thu)`;
 const subject = latest.holiday
-  ? `Design Evaluation Board · ${weekLabel} · Official holiday${holName(latest.remarks) ? " (" + holName(latest.remarks) + ")" : ""}`
+  ? `Design Evaluation Board \u00b7 ${weekLabel} \u00b7 Official holiday${holName(latest.remarks) ? " (" + holName(latest.remarks) + ")" : ""}`
   : latest.count
-  ? `Design Evaluation Board · ${weekLabel} · ${latest.count} design${latest.count === 1 ? "" : "s"} discussed`
-  : `Design Evaluation Board · ${weekLabel} · No design discussed`;
+  ? `Design Evaluation Board \u00b7 ${weekLabel} \u00b7 ${latest.count} design${latest.count === 1 ? "" : "s"} discussed`
+  : `Design Evaluation Board \u00b7 ${weekLabel} \u00b7 No design discussed`;
 const preheader = latest.holiday
   ? "Official holiday: no board meeting this Friday, not counted in the totals."
   : latest.count
@@ -183,8 +183,8 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewp
   <tr><td bgcolor="${C.navy}" style="background:${C.navy};background-image:linear-gradient(135deg,${C.navy2} 0%,${C.navy} 65%);border-radius:14px 14px 0 0;padding:26px 28px">
     <div style="font-size:11px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:${C.navyMuted}">Latest board meeting</div>
     <div style="font-size:24px;font-weight:700;color:#fff;margin-top:8px;line-height:1.25">${nd(long(latest.f))}</div>
-    <div style="font-size:14px;color:${C.navyMuted};margin-top:2px">${nd("5:00 PM")} &nbsp;·&nbsp; ${nd(weekLabel)}</div>
-    ${latest.holiday ? `<div style="margin-top:16px;font-size:30px;font-weight:800;color:#fff">Official holiday</div><div style="font-size:14px;color:${C.navyMuted};margin-top:4px">${holName(latest.remarks) ? esc(holName(latest.remarks)) + " · " : ""}not counted in the totals</div>` : `
+    <div style="font-size:14px;color:${C.navyMuted};margin-top:2px">${nd("5:00 PM")} &nbsp;\u00b7&nbsp; ${nd(weekLabel)}</div>
+    ${latest.holiday ? `<div style="margin-top:16px;font-size:30px;font-weight:800;color:#fff">Official holiday</div><div style="font-size:14px;color:${C.navyMuted};margin-top:4px">${holName(latest.remarks) ? esc(holName(latest.remarks)) + " \u00b7 " : ""}not counted in the totals</div>` : `
     <table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:16px"><tr>
       <td style="font-size:52px;font-weight:800;line-height:1;color:${latest.count ? "#fff" : C.hatch};letter-spacing:-1.5px">${latest.count}</td>
       <td style="padding-left:12px;vertical-align:bottom;padding-bottom:6px;font-size:15px;color:${C.navyMuted}">design${latest.count === 1 ? "" : "s"} discussed</td>
@@ -217,13 +217,13 @@ const text = [subject, "",
     ? latest.designs.map(d => `- ${idOf(d) ? idOf(d) + " " : ""}${d.designName}${d.owner ? ` (${d.owner})` : ""}${madeUp(d)}${d.description && d.description !== d.designName ? `\n  ${d.description}` : ""}`)
     : [latest.holiday ? `Official holiday${holName(latest.remarks) ? " (" + holName(latest.remarks) + ")" : ""}. Not counted.` : "No design discussed."]),
   "", `Last ${weeks.length} Friday${weeks.length === 1 ? "" : "s"}: ${total} designs, ${working - withD} week${working - withD === 1 ? "" : "s"} with none, ${rate}% discussion rate${holidays ? ` (${holidays} holiday${holidays === 1 ? "" : "s"} excluded)` : ""}`,
-  ...weeks.slice().reverse().map(w => `  ${short(w.f)}  ${w.holiday ? "—" : w.count}  ${w.holiday ? "Official Holiday" : w.count ? "Discussed" : "No Design Discussed"}`),
+  ...weeks.slice().reverse().map(w => `  ${short(w.f)}  ${w.holiday ? "\u2014" : w.count}  ${w.holiday ? "Official Holiday" : w.count ? "Discussed" : "No Design Discussed"}`),
   "", `Dashboard: ${DASHBOARD_URL}`].join("\n");
 
-// Some mail clients (e.g. Zimbra) read the message as Windows-1252, turning "·" into "Â·".
+// Some mail clients (e.g. Zimbra) read the message as Windows-1252, turning "\u00b7" into "\u00c2\u00b7".
 // Send pure ASCII: HTML gets numeric entities; subject and plain text get ASCII look-alikes.
-const ASCII = { "·": "|", "–": "-", "—": "-", "→": "->", "‘": "'", "’": "'", "“": '"', "”": '"', "…": "...", "÷": "/", "•": "*" };
-const toAscii = t => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\x00-\x7F]/g, c => ASCII[c] ?? "");
+const ASCII = { "\u00b7": "|", "\u2013": "-", "\u2014": "-", "\u2192": "->", "\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"', "\u2026": "...", "\u00f7": "/", "\u2022": "*" };
+const toAscii = t => String(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x00-\x7F]/g, c => ASCII[c] ?? "");
 const htmlSafe = html.replace(/[^\x00-\x7F]/g, c => `&#${c.codePointAt(0)};`);
 
 return [{ json: { subject: toAscii(subject), html: htmlSafe, text: toAscii(text), meetingDate: latest.f, designCount: latest.count } }];
